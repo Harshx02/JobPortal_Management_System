@@ -33,12 +33,7 @@
             <!-- Exclude the Eureka client that auto-registers this server
                  This is the ROOT CAUSE of the TransportClientFactories error
                  The server was trying to act as a client too -->
-            <exclusions>
-                <exclusion>
-                    <groupId>org.springframework.cloud</groupId>
-                    <artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
-                </exclusion>
-            </exclusions>
+           
         </dependency>
 
         <!-- Spring Web - needed for Eureka dashboard UI -->

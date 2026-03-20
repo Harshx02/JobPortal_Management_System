@@ -9,6 +9,8 @@ import org.springframework.stereotype.Component;
 
 import java.security.Key;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 
 @Component
 public class JwtUtil {
@@ -19,14 +21,21 @@ public class JwtUtil {
     @Value("${jwt.expiration}")
     private long jwtExpiration;
 
-    // Generate signing key from secret
     private Key getSigningKey() {
         return Keys.hmacShaKeyFor(jwtSecret.getBytes());
     }
 
-    // Generate token using email
-    public String generateToken(String email) {
+    // UPDATED: now includes role and userId inside the token
+    // These are needed by the API Gateway to extract user info
+    // and pass as headers (X-User-Role, X-User-Id) to other services
+    public String generateToken(String email, String role, Long userId) {
+
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("role", role);
+        claims.put("userId", userId);
+
         return Jwts.builder()
+                .setClaims(claims)
                 .setSubject(email)
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(
@@ -40,7 +49,7 @@ public class JwtUtil {
         return getClaims(token).getSubject();
     }
 
-    // Validate token
+    // Validate token - used by JwtAuthFilter
     public boolean validateToken(String token, String email) {
         try {
             String extractedEmail = extractEmail(token);
@@ -50,14 +59,10 @@ public class JwtUtil {
         }
     }
 
-    // Check if token is expired
     private boolean isTokenExpired(String token) {
-        return getClaims(token)
-                .getExpiration()
-                .before(new Date());
+        return getClaims(token).getExpiration().before(new Date());
     }
 
-    // Get all claims from token
     private Claims getClaims(String token) {
         return Jwts.parserBuilder()
                 .setSigningKey(getSigningKey())

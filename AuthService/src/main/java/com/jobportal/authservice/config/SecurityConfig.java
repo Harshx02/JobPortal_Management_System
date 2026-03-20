@@ -41,6 +41,7 @@ public class SecurityConfig {
                 // PUBLIC — no token needed
                 .requestMatchers("/api/auth/register").permitAll()
                 .requestMatchers("/api/auth/login").permitAll()
+                .requestMatchers("/api/auth/users/**").permitAll()
                 // PROTECTED — token required for everything else
                 .anyRequest().authenticated()
             )
@@ -69,6 +70,7 @@ public class SecurityConfig {
     // Wire UserDetailsService + PasswordEncoder together
     // =====================================================
     @Bean
+    @SuppressWarnings("deprecation")
     public DaoAuthenticationProvider authenticationProvider() {
         DaoAuthenticationProvider provider =
                 new DaoAuthenticationProvider();
