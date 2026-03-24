@@ -16,6 +16,10 @@ public interface ApplicationService {
     List<ApplicationResponse> getJobApplicants(Long jobId);
 
     ApplicationResponse updateStatus(StatusUpdateRequest request);
+
+    void deleteByUserId(Long userId);
+
+    void deleteByJobId(Long jobId);
 }
 
 

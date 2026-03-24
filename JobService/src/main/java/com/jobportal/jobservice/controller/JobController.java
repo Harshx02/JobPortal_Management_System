@@ -11,6 +11,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/jobs")
 @RequiredArgsConstructor
@@ -72,5 +74,18 @@ public class JobController {
             @RequestParam(defaultValue = "createdAt") String sortBy,
             @RequestParam(defaultValue = "desc") String direction) {
         return ResponseEntity.ok(jobService.searchJobs(filter, page, size, sortBy, direction));
+    }
+
+    // GET /api/jobs/recruiter/{recruiterId}
+    @GetMapping("/recruiter/{recruiterId}")
+    public ResponseEntity<List<JobResponseDto>> getJobsByRecruiter(@PathVariable Long recruiterId) {
+        return ResponseEntity.ok(jobService.getJobsByRecruiter(recruiterId));
+    }
+
+    // DELETE /api/jobs/recruiter/{recruiterId}
+    @DeleteMapping("/recruiter/{recruiterId}")
+    public ResponseEntity<Void> deleteJobsByRecruiter(@PathVariable Long recruiterId) {
+        jobService.deleteJobsByRecruiter(recruiterId);
+        return ResponseEntity.noContent().build();
     }
 }

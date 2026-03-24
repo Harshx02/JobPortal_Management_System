@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -76,5 +77,18 @@ public class JobServiceImpl implements JobService {
         Pageable pageable = PageRequest.of(page, size, sort);
         return jobRepository.findAll(JobSpecification.getFilteredJobs(filter), pageable)
                 .map(job -> modelMapper.map(job, JobResponseDto.class));
+    }
+
+    @Override
+    public List<JobResponseDto> getJobsByRecruiter(Long recruiterId) {
+        return jobRepository.findByRecruiterId(recruiterId).stream()
+                .map(job -> modelMapper.map(job, JobResponseDto.class))
+                .collect(java.util.stream.Collectors.toList());
+    }
+
+    @Override
+    @org.springframework.transaction.annotation.Transactional
+    public void deleteJobsByRecruiter(Long recruiterId) {
+        jobRepository.deleteByRecruiterId(recruiterId);
     }
 }

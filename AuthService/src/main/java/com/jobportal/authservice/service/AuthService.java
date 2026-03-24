@@ -12,6 +12,7 @@ import com.jobportal.authservice.dto.request.RegisterRequest;
 import com.jobportal.authservice.dto.response.AuthResponse;
 import com.jobportal.authservice.dto.response.UserResponse;
 import com.jobportal.authservice.entity.User;
+import com.jobportal.authservice.enums.UserRole;
 import com.jobportal.authservice.exception.DuplicateEmailException;
 import com.jobportal.authservice.exception.InvalidCredentialsException;
 import com.jobportal.authservice.exception.UserNotFoundException;
@@ -50,8 +51,6 @@ public class AuthService {
 
         User savedUser = userRepository.save(user);
 
-        // UPDATED: pass role and userId into token
-        // API Gateway will extract these and forward as headers
         String token = jwtUtil.generateToken(
                 savedUser.getEmail(),
                 savedUser.getRole().name(),
@@ -80,7 +79,6 @@ public class AuthService {
             throw new InvalidCredentialsException("Invalid email or password!");
         }
 
-        // UPDATED: pass role and userId into token
         String token = jwtUtil.generateToken(
                 user.getEmail(),
                 user.getRole().name(),
@@ -102,16 +100,7 @@ public class AuthService {
     public List<UserResponse> getAllUsers() {
         return userRepository.findAll()
                 .stream()
-                .map(user -> {
-                    UserResponse response = new UserResponse();
-                    response.setId(user.getId());
-                    response.setName(user.getName());
-                    response.setEmail(user.getEmail());
-                    response.setPhone(user.getPhone());
-                    response.setRole(user.getRole());
-                    response.setCreatedAt(user.getCreatedAt());
-                    return response;
-                })
+                .map(this::convertToUserResponse)
                 .collect(Collectors.toList());
     }
 
@@ -120,14 +109,7 @@ public class AuthService {
         User user = userRepository.findById(id)
                 .orElseThrow(() ->
                         new UserNotFoundException("User not found with id: " + id));
-        UserResponse response = new UserResponse();
-        response.setId(user.getId());
-        response.setName(user.getName());
-        response.setEmail(user.getEmail());
-        response.setPhone(user.getPhone());
-        response.setRole(user.getRole());
-        response.setCreatedAt(user.getCreatedAt());
-        return response;
+        return convertToUserResponse(user);
     }
 
     // DELETE USER
@@ -136,5 +118,24 @@ public class AuthService {
                 .orElseThrow(() ->
                         new UserNotFoundException("User not found with id: " + id));
         userRepository.delete(user);
+    }
+
+    // GET USERS BY ROLE
+    public List<UserResponse> getUsersByRole(UserRole role) {
+        return userRepository.findByRole(role)
+                .stream()
+                .map(this::convertToUserResponse)
+                .collect(Collectors.toList());
+    }
+
+    private UserResponse convertToUserResponse(User user) {
+        UserResponse response = new UserResponse();
+        response.setId(user.getId());
+        response.setName(user.getName());
+        response.setEmail(user.getEmail());
+        response.setPhone(user.getPhone());
+        response.setRole(user.getRole());
+        response.setCreatedAt(user.getCreatedAt());
+        return response;
     }
 }

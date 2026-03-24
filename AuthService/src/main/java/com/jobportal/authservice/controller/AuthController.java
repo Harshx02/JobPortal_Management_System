@@ -109,4 +109,10 @@ public class AuthController {
         authService.deleteUser(id);
         return ResponseEntity.noContent().build();
     }
+
+    // GET /api/auth/users/role/{role}
+    @GetMapping("/users/role/{role}")
+    public ResponseEntity<List<UserResponse>> getUsersByRole(@PathVariable String role) {
+        return ResponseEntity.ok(authService.getUsersByRole(com.jobportal.authservice.enums.UserRole.valueOf(role)));
+    }
 }

@@ -63,4 +63,16 @@ public class ApplicationServiceImpl implements ApplicationService{
 
         return modelMapper.map(app, ApplicationResponse.class);
     }
+
+    @Override
+    @org.springframework.transaction.annotation.Transactional
+    public void deleteByUserId(Long userId) {
+        repo.deleteByUserId(userId);
+    }
+
+    @Override
+    @org.springframework.transaction.annotation.Transactional
+    public void deleteByJobId(Long jobId) {
+        repo.deleteByJobId(jobId);
+    }
 }

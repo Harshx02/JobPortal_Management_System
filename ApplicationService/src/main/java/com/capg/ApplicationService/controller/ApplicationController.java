@@ -41,4 +41,18 @@ public class ApplicationController {
     public ResponseEntity<ApplicationResponse> updateStatus(@RequestBody StatusUpdateRequest request) {
         return ResponseEntity.ok(service.updateStatus(request));
     }
+
+    // DELETE BY USER
+    @DeleteMapping("/user/{userId}")
+    public ResponseEntity<Void> deleteByUser(@PathVariable Long userId) {
+        service.deleteByUserId(userId);
+        return ResponseEntity.noContent().build();
+    }
+
+    // DELETE BY JOB
+    @DeleteMapping("/job/{jobId}")
+    public ResponseEntity<Void> deleteByJob(@PathVariable Long jobId) {
+        service.deleteByJobId(jobId);
+        return ResponseEntity.noContent().build();
+    }
 }
