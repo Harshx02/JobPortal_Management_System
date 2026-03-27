@@ -93,6 +93,7 @@ public class JobServiceImpl implements JobService {
         return result;
     }
 
+    @org.springframework.cache.annotation.Cacheable(value = "jobs", key = "#id")
     @Override
     public JobResponseDto getJobById(Long id) {
 

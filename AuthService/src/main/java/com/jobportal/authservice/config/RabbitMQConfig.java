@@ -8,7 +8,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
-public class KafkaConfig {
+public class RabbitMQConfig {
 
     // Queue names
     public static final String JOBS_DELETED_QUEUE = "jobs-deleted";

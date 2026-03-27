@@ -31,6 +31,7 @@ public class AdminServiceImpl implements AdminService {
     @Value("${internal.secret}")
     private String internalSecret;
 
+    @io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker(name = "auth-service", fallbackMethod = "fallbackGetAllUsers")
     @Override
     public List<UserResponse> getAllUsers() {
 
@@ -138,5 +139,10 @@ public class AdminServiceImpl implements AdminService {
                 "totalJobs", totalJobs,
                 "totalApplications", totalApplications
         );
+    }
+
+    public List<UserResponse> fallbackGetAllUsers(Throwable t) {
+        log.error("Fallback triggered for getAllUsers | error: {}", t.getMessage());
+        return List.of();
     }
 }

@@ -9,7 +9,10 @@ import org.springframework.web.bind.annotation.RequestHeader;
 
 import com.jobportal.adminservice.dto.response.UserResponse;
 
-@FeignClient(name = "auth-service")
+@FeignClient(
+    name = "auth-service",
+    fallbackFactory = AuthServiceClientFallback.class
+)
 public interface AuthServiceClient {
 
     @GetMapping("/api/auth/users")

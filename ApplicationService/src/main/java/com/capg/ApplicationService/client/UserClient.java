@@ -7,7 +7,10 @@ import org.springframework.web.bind.annotation.RequestHeader;
 
 import com.capg.ApplicationService.dto.response.UserResponse;
 
-@FeignClient(name = "auth-service")
+@FeignClient(
+    name = "auth-service",
+    fallbackFactory = UserClientFallback.class
+)
 public interface UserClient {
 
     @GetMapping("/api/auth/users/{id}")

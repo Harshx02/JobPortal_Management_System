@@ -6,7 +6,10 @@ import org.springframework.web.bind.annotation.PathVariable;
 
 import com.capg.ApplicationService.dto.response.JobResponse;
 
-@FeignClient(name = "job-service")
+@FeignClient(
+    name = "job-service",
+    fallbackFactory = JobClientFallback.class
+)
 public interface JobClient {
 
     @GetMapping("/api/jobs/{id}")

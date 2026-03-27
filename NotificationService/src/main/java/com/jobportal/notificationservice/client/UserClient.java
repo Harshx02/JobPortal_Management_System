@@ -8,7 +8,10 @@ import org.springframework.web.bind.annotation.RequestHeader;
 
 import com.jobportal.notificationservice.dto.UserResponse;
 
-@FeignClient(name = "auth-service")
+@FeignClient(
+    name = "auth-service",
+    fallbackFactory = UserClientFallback.class
+)
 public interface UserClient {
 
     @GetMapping("/api/auth/users")

@@ -1,9 +1,10 @@
 package com.capg.ApplicationService.consumer;
 
-import org.springframework.kafka.annotation.KafkaListener;
-import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Component;
 
+import com.capg.ApplicationService.config.KafkaConfig;
 import com.capg.ApplicationService.repository.ApplicationRepository;
 import com.capg.ApplicationService.event.UserDeleteEvent;
 
@@ -16,12 +17,9 @@ import lombok.extern.slf4j.Slf4j;
 public class UserDeleteConsumer {
 
     private final ApplicationRepository applicationRepository;
-    private final KafkaTemplate<String, UserDeleteEvent> kafkaTemplate;
+    private final RabbitTemplate rabbitTemplate;
 
-    @KafkaListener(
-            topics = "user-delete-requested",
-            groupId = "application-group"
-    )
+    @RabbitListener(queues = KafkaConfig.USER_DELETE_REQUESTED_QUEUE)
     public void handle(UserDeleteEvent event) {
 
         log.info("Received USER_DELETE_REQUESTED | userId: {}", event.getUserId());
@@ -38,7 +36,7 @@ public class UserDeleteConsumer {
         event.setStatus("APPLICATION_DELETED");
 
         // ✅ Publish next event
-        kafkaTemplate.send("application-deleted", event);
+        rabbitTemplate.convertAndSend(KafkaConfig.EXCHANGE, "app.application.deleted", event);
 
         log.info("Published APPLICATION_DELETED event | userId: {}", event.getUserId());
     }
