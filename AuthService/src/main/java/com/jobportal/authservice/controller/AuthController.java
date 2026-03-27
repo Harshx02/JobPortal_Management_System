@@ -1,27 +1,34 @@
 package com.jobportal.authservice.controller;
 
+import java.io.IOException;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.jobportal.authservice.dto.request.LoginRequest;
 import com.jobportal.authservice.dto.request.RegisterRequest;
+import com.jobportal.authservice.dto.request.UpdateProfileRequest;
 import com.jobportal.authservice.dto.response.AuthResponse;
 import com.jobportal.authservice.dto.response.UserResponse;
 import com.jobportal.authservice.service.AuthService;
 
 import jakarta.validation.Valid;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/auth")
 @CrossOrigin(origins = "*")
@@ -30,89 +37,93 @@ public class AuthController {
     @Autowired
     private AuthService authService;
 
-    // =====================================================
-    // POST /api/auth/register
-    // =====================================================
-    /**
-     * REQUEST BODY:
-     * {
-     *   "name": "Priya Singh",
-     *   "email": "priya@example.com",
-     *   "password": "pass1234",
-     *   "phone": "9876543210",
-     *   "role": "JOB_SEEKER"
-     * }
-     *
-     * RESPONSE (201 Created):
-     * {
-     *   "token": "eyJhbGci...",
-     *   "name": "Priya Singh",
-     *   "email": "priya@example.com",
-     *   "role": "JOB_SEEKER",
-     *   "message": "Registration successful!"
-     * }
-     */
     @PostMapping("/register")
     public ResponseEntity<AuthResponse> register(
             @Valid @RequestBody RegisterRequest request) {
 
+        log.info("Register API called | email: {}", request.getEmail());
+
         AuthResponse response = authService.register(request);
-        return ResponseEntity
-                .status(HttpStatus.CREATED)
-                .body(response);
+
+        log.info("User registered successfully | email: {}", request.getEmail());
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-    // =====================================================
-    // POST /api/auth/login
-    // =====================================================
-    /**
-     * REQUEST BODY:
-     * {
-     *   "email": "priya@example.com",
-     *   "password": "pass1234"
-     * }
-     *
-     * RESPONSE (200 OK):
-     * {
-     *   "token": "eyJhbGci...",
-     *   "name": "Priya Singh",
-     *   "email": "priya@example.com",
-     *   "role": "JOB_SEEKER",
-     *   "message": "Login successful!"
-     * }
-     */
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(
             @Valid @RequestBody LoginRequest request) {
 
+        log.info("Login API called | email: {}", request.getEmail());
+
         AuthResponse response = authService.login(request);
-        return ResponseEntity
-                .status(HttpStatus.OK)
-                .body(response);
+
+        log.info("Login successful | email: {}", request.getEmail());
+
+        return ResponseEntity.status(HttpStatus.OK).body(response);
     }
-    
- // GET /api/auth/users
+
+    @PostMapping(value = "/users/{id}/profile-image",
+            consumes = "multipart/form-data")
+    public ResponseEntity<UserResponse> uploadProfileImage(
+            @PathVariable Long id,
+            @RequestParam("image") MultipartFile image)
+            throws IOException {
+
+        log.info("Upload profile image API called | userId: {} | fileName: {}",
+                id, image.getOriginalFilename());
+
+        UserResponse response = authService.uploadProfileImage(id, image);
+
+        log.info("Profile image uploaded successfully | userId: {}", id);
+
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/profile")
+    public ResponseEntity<UserResponse> getMyProfile(
+            @RequestHeader("X-User-Id") Long userId) {
+
+        log.info("Fetch profile API called | userId: {}", userId);
+
+        UserResponse response = authService.getUserById(userId);
+
+        log.info("Profile fetched successfully | userId: {}", userId);
+
+        return ResponseEntity.ok(response);
+    }
+
     @GetMapping("/users")
     public ResponseEntity<List<UserResponse>> getAllUsers() {
-        return ResponseEntity.ok(authService.getAllUsers());
+
+        log.info("Fetch all users API called");
+
+        List<UserResponse> users = authService.getAllUsers();
+
+        return ResponseEntity.ok(users);
     }
 
-    // GET /api/auth/users/{id}
     @GetMapping("/users/{id}")
-    public ResponseEntity<UserResponse> getUserById(@PathVariable Long id) {
-        return ResponseEntity.ok(authService.getUserById(id));
+    public ResponseEntity<UserResponse> getUserById(
+            @PathVariable Long id) {
+
+        log.info("Fetch user by ID API called | userId: {}", id);
+
+        UserResponse response = authService.getUserById(id);
+
+        return ResponseEntity.ok(response);
     }
 
-    // DELETE /api/auth/users/{id}
-    @DeleteMapping("/users/{id}")
-    public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
-        authService.deleteUser(id);
-        return ResponseEntity.noContent().build();
-    }
+    @PutMapping("/users/profile")
+    public ResponseEntity<UserResponse> updateProfile(
+            @RequestHeader("X-User-Id") Long userId,
+            @RequestBody UpdateProfileRequest request) {
 
-    // GET /api/auth/users/role/{role}
-    @GetMapping("/users/role/{role}")
-    public ResponseEntity<List<UserResponse>> getUsersByRole(@PathVariable String role) {
-        return ResponseEntity.ok(authService.getUsersByRole(com.jobportal.authservice.enums.UserRole.valueOf(role)));
+        log.info("Update profile API called | userId: {}", userId);
+
+        UserResponse response =
+                authService.updateProfile(userId, request);
+
+        return ResponseEntity.ok(response);
     }
 }

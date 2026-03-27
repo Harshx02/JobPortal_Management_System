@@ -1,21 +1,33 @@
 package com.capg.ApplicationService.repository;
 
-import com.capg.ApplicationService.entity.Application;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.util.List;
 
-public interface ApplicationRepository extends JpaRepository<Application, Long> {
-    List<Application> findByUserId(Long userId);
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
 
-    List<Application> findByJobId(Long jobId);
+import com.capg.ApplicationService.entity.JobApplication;
 
+@Repository
+public interface ApplicationRepository extends JpaRepository<JobApplication, Long> {
+
+    // Get all applications by user
+    List<JobApplication> findByUserId(Long userId);
+
+    // Get all applications for a job
+    List<JobApplication> findByJobId(Long jobId);
+
+    // Check if user already applied for a job
     boolean existsByUserIdAndJobId(Long userId, Long jobId);
 
-    @Transactional
+    // ✅ REQUIRED for Saga (Idempotency check)
+    boolean existsByUserId(Long userId);
+
+    // Delete all applications by userId
     void deleteByUserId(Long userId);
 
-    @Transactional
+    // Delete all applications by jobId
     void deleteByJobId(Long jobId);
+
+    // Count all applications
+    long count();
 }

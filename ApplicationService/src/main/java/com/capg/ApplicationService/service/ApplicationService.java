@@ -1,26 +1,25 @@
 package com.capg.ApplicationService.service;
 
-import com.capg.ApplicationService.dto.ApplicationRequest;
-import com.capg.ApplicationService.dto.ApplicationResponse;
-import com.capg.ApplicationService.dto.StatusUpdateRequest;
-import com.capg.ApplicationService.entity.Application;
-import com.capg.ApplicationService.entity.ApplicationStatus;
-
 import java.util.List;
 
+import com.capg.ApplicationService.dto.request.ApplicationRequest;
+import com.capg.ApplicationService.dto.response.ApplicationResponse;
+import com.capg.ApplicationService.dto.response.JobApplicationResponse;
+import com.capg.ApplicationService.enums.ApplicationStatus;
+
 public interface ApplicationService {
-    ApplicationResponse apply(ApplicationRequest request);
 
-    List<ApplicationResponse> getUserApplications(Long userId);
+    ApplicationResponse applyForJob(ApplicationRequest request, Long userId, String role, String resumeUrl);
 
-    List<ApplicationResponse> getJobApplicants(Long jobId);
+    List<ApplicationResponse> getUserApplications(Long userId, String role);
 
-    ApplicationResponse updateStatus(StatusUpdateRequest request);
+    List<JobApplicationResponse> getJobApplications(Long jobId, String role, Long recruiterId);
 
-    void deleteByUserId(Long userId);
+    ApplicationResponse updateStatus(Long applicationId, ApplicationStatus status, Long recruiterId, String role);
 
-    void deleteByJobId(Long jobId);
+    void deleteUserApplications(Long userId);
+
+    void deleteJobApplications(Long jobId);
+
+    Long getTotalApplications();
 }
-
-
-

@@ -15,14 +15,12 @@ public class JwtUtil {
     @Value("${jwt.secret}")
     private String jwtSecret;
 
-    // Build signing key from secret string
-    // Must be the SAME secret as auth-service
+    // Build signing key — MUST be same secret as Auth Service
     private Key getSigningKey() {
         return Keys.hmacShaKeyFor(jwtSecret.getBytes());
     }
 
     // Validate the token
-    // Returns true if valid, false if expired or tampered
     public boolean validateToken(String token) {
         try {
             Jwts.parserBuilder()
@@ -41,7 +39,6 @@ public class JwtUtil {
     }
 
     // Extract role from token claims
-    // e.g. "JOB_SEEKER", "RECRUITER", "ADMIN"
     public String extractRole(String token) {
         return getClaims(token).get("role", String.class);
     }
@@ -50,6 +47,7 @@ public class JwtUtil {
     public Long extractUserId(String token) {
         Claims claims = getClaims(token);
         Object userId = claims.get("userId");
+        if (userId == null) return null;
         if (userId instanceof Integer) {
             return ((Integer) userId).longValue();
         }

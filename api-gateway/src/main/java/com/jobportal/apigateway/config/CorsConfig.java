@@ -17,7 +17,7 @@ public class CorsConfig {
 
         CorsConfiguration config = new CorsConfiguration();
 
-        // Allow requests from any frontend origin
+        // Allow requests from Angular frontend
         config.setAllowedOriginPatterns(List.of("*"));
 
         // Allow these HTTP methods

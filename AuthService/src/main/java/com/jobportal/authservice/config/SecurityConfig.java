@@ -26,51 +26,47 @@ public class SecurityConfig {
     @Autowired
     private UserDetailsServiceImpl userDetailsService;
 
-    // =====================================================
-    // Define which endpoints are PUBLIC and which are PROTECTED
-    // =====================================================
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http)
             throws Exception {
         http
-            // Disable CSRF — not needed for REST APIs
             .csrf(csrf -> csrf.disable())
 
-            // Define access rules
             .authorizeHttpRequests(auth -> auth
                 // PUBLIC — no token needed
                 .requestMatchers("/api/auth/register").permitAll()
                 .requestMatchers("/api/auth/login").permitAll()
+                
+                .requestMatchers(
+                        "/v3/api-docs/**",
+                        "/swagger-ui/**",
+                        "/swagger-ui.html"
+                    ).permitAll()
+                
+                // Allow internal service calls
+                // Security handled by X-Internal-Secret in JwtAuthFilter
                 .requestMatchers("/api/auth/users/**").permitAll()
+                
                 // PROTECTED — token required for everything else
                 .anyRequest().authenticated()
             )
 
-            // STATELESS — no sessions, JWT handles everything
             .sessionManagement(session -> session
                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             )
 
-            // Add JWT filter before default Spring Security filter
             .addFilterBefore(jwtAuthFilter,
                     UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
 
-    // =====================================================
-    // BCrypt Password Encoder
-    // =====================================================
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
-    // =====================================================
-    // Wire UserDetailsService + PasswordEncoder together
-    // =====================================================
     @Bean
-    @SuppressWarnings("deprecation")
     public DaoAuthenticationProvider authenticationProvider() {
         DaoAuthenticationProvider provider =
                 new DaoAuthenticationProvider();
@@ -79,9 +75,6 @@ public class SecurityConfig {
         return provider;
     }
 
-    // =====================================================
-    // AuthenticationManager — used in AuthService for login
-    // =====================================================
     @Bean
     public AuthenticationManager authenticationManager(
             AuthenticationConfiguration config) throws Exception {

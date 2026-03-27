@@ -12,6 +12,24 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
+/**
+ * AUTHENTICATION FILTER
+ * ---------------------
+ * This filter runs on every PROTECTED route.
+ *
+ * Flow:
+ * 1. Check Authorization header exists
+ * 2. Extract JWT token
+ * 3. Validate token
+ * 4. Extract email, role, userId from token
+ * 5. Add them as headers to the request
+ * 6. Forward request to the microservice
+ *
+ * Microservices then read:
+ *   X-User-Id    → to know who is making the request
+ *   X-User-Role  → to know their role
+ *   X-User-Email → to know their email
+ */
 @Component
 public class AuthenticationFilter extends
         AbstractGatewayFilterFactory<AuthenticationFilter.Config> {
@@ -29,52 +47,68 @@ public class AuthenticationFilter extends
 
             ServerHttpRequest request = exchange.getRequest();
 
-            // Check Authorization header exists
-            if (!request.getHeaders().containsKey(HttpHeaders.AUTHORIZATION)) {
-                return onError(exchange, "Missing Authorization header");
+            // Step 1: Check Authorization header exists
+            if (!request.getHeaders()
+                    .containsKey(HttpHeaders.AUTHORIZATION)) {
+                return onError(exchange,
+                        "Missing Authorization header");
             }
 
-            // Extract token
+            // Step 2: Extract token
             String authHeader = request.getHeaders()
                     .getFirst(HttpHeaders.AUTHORIZATION);
 
-            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-                return onError(exchange, "Invalid Authorization format");
+            if (authHeader == null ||
+                    !authHeader.startsWith("Bearer ")) {
+                return onError(exchange,
+                        "Invalid Authorization format");
             }
 
             String token = authHeader.substring(7);
 
-            // Validate token
+            // Step 3: Validate token
             if (!jwtUtil.validateToken(token)) {
-                return onError(exchange, "Invalid or expired token");
+                return onError(exchange,
+                        "Invalid or expired token");
             }
 
-            // Extract user info and add as headers
+            // Step 4: Extract user info from token
             String email  = jwtUtil.extractEmail(token);
             String role   = jwtUtil.extractRole(token);
             Long   userId = jwtUtil.extractUserId(token);
 
+            // Step 5: Add user info as headers
             ServerHttpRequest modifiedRequest = request.mutate()
-                    .header("X-User-Email", email  != null ? email  : "")
-                    .header("X-User-Role",  role   != null ? role   : "")
-                    .header("X-User-Id",    userId != null ? userId.toString() : "")
+                    .header("X-User-Email",
+                            email  != null ? email  : "")
+                    .header("X-User-Role",
+                            role   != null ? role   : "")
+                    .header("X-User-Id",
+                            userId != null ? userId.toString() : "")
                     .build();
 
+            // Step 6: Forward to microservice
             return chain.filter(exchange.mutate()
                     .request(modifiedRequest).build());
         };
     }
 
-    private Mono<Void> onError(ServerWebExchange exchange, String message) {
-        exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
+    private Mono<Void> onError(ServerWebExchange exchange,
+            String message) {
+        exchange.getResponse()
+                .setStatusCode(HttpStatus.UNAUTHORIZED);
         exchange.getResponse().getHeaders()
                 .add("Content-Type", "application/json");
-        DataBuffer buffer = exchange.getResponse().bufferFactory()
-                .wrap(("{\"error\":\"" + message + "\"}").getBytes());
-        return exchange.getResponse().writeWith(Mono.just(buffer));
+        DataBuffer buffer = exchange.getResponse()
+                .bufferFactory()
+                .wrap(("{\"error\":\"" + message + "\"}")
+                        .getBytes());
+        return exchange.getResponse()
+                .writeWith(Mono.just(buffer));
     }
 
     public static class Config {
-        // Empty config class required by AbstractGatewayFilterFactory
+        // Empty config class required by
+        // AbstractGatewayFilterFactory
     }
 }

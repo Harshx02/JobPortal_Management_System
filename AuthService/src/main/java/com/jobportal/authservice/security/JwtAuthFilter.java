@@ -1,10 +1,9 @@
 package com.jobportal.authservice.security;
 
-import jakarta.servlet.FilterChain;
-import jakarta.servlet.ServletException;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
+
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -12,8 +11,13 @@ import org.springframework.security.web.authentication.WebAuthenticationDetailsS
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-import java.io.IOException;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Component
 public class JwtAuthFilter extends OncePerRequestFilter {
 
@@ -23,30 +27,47 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     @Autowired
     private UserDetailsServiceImpl userDetailsService;
 
+    @Value("${internal.secret}")
+    private String internalSecret;
+
     @Override
-    protected void doFilterInternal(
-            HttpServletRequest request,
-            HttpServletResponse response,
-            FilterChain filterChain
-    ) throws ServletException, IOException {
+    protected void doFilterInternal(HttpServletRequest request,
+                                    HttpServletResponse response,
+                                    FilterChain filterChain)
+            throws ServletException, IOException {
 
-        // Step 1: Get Authorization header
-        // Format: "Bearer eyJhbGci..."
+        String path = request.getRequestURI();
+        log.debug("Incoming request: {}", path);
+
+        //Allow Swagger without authentication
+        if (path.startsWith("/swagger-ui") ||
+            path.startsWith("/v3/api-docs") ||
+            path.startsWith("/swagger-ui.html") ||
+            path.startsWith("/webjars")) {
+
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        // Allow internal service-to-service calls
+        String internalHeader = request.getHeader("X-Internal-Secret");
+        if (internalHeader != null && internalHeader.equals(internalSecret)) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        // Normal JWT validation
         String authHeader = request.getHeader("Authorization");
-
         String token = null;
         String email = null;
 
-        // Step 2: Extract token from header
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             token = authHeader.substring(7);
             email = jwtUtil.extractEmail(token);
         }
 
-        // Step 3: Validate token and set authentication
-        if (email != null &&
-                SecurityContextHolder.getContext()
-                        .getAuthentication() == null) {
+        if (email != null && SecurityContextHolder
+                .getContext().getAuthentication() == null) {
 
             UserDetails userDetails =
                     userDetailsService.loadUserByUsername(email);
@@ -57,21 +78,19 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                         new UsernamePasswordAuthenticationToken(
                                 userDetails,
                                 null,
-                                userDetails.getAuthorities()
-                        );
+                                userDetails.getAuthorities());
 
                 authToken.setDetails(
                         new WebAuthenticationDetailsSource()
-                                .buildDetails(request)
-                );
+                                .buildDetails(request));
 
-                // Tell Spring Security this user is authenticated
                 SecurityContextHolder.getContext()
                         .setAuthentication(authToken);
             }
         }
-
-        // Step 4: Continue to next filter
+        
+        log.debug("JWT validation processing");
         filterChain.doFilter(request, response);
     }
 }
+

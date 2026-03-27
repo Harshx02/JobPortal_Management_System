@@ -1,78 +1,302 @@
 package com.capg.ApplicationService.service;
-import com.capg.ApplicationService.dto.ApplicationRequest;
-import com.capg.ApplicationService.dto.ApplicationResponse;
-import com.capg.ApplicationService.dto.StatusUpdateRequest;
-import com.capg.ApplicationService.entity.Application;
-import com.capg.ApplicationService.entity.ApplicationStatus;
-import com.capg.ApplicationService.exception.DuplicateApplicationException;
-import com.capg.ApplicationService.exception.ResourceNotFoundException;
-import com.capg.ApplicationService.repository.ApplicationRepository;
-import lombok.AllArgsConstructor;
+
+
+import java.util.List;
+import java.util.stream.Collectors;
+
 import org.modelmapper.ModelMapper;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
-import java.util.List;
+import com.capg.ApplicationService.client.JobClient;
+import com.capg.ApplicationService.client.UserClient;
+import com.capg.ApplicationService.config.RabbitMQConfig;
+import com.capg.ApplicationService.dto.event.ApplicationStatusEvent;
+import com.capg.ApplicationService.dto.event.JobAppliedEvent;
+import com.capg.ApplicationService.dto.request.ApplicationRequest;
+import com.capg.ApplicationService.dto.response.ApplicationResponse;
+import com.capg.ApplicationService.dto.response.JobApplicationResponse;
+import com.capg.ApplicationService.dto.response.JobResponse;
+import com.capg.ApplicationService.dto.response.UserResponse;
+import com.capg.ApplicationService.entity.JobApplication;
+import com.capg.ApplicationService.enums.ApplicationStatus;
+import com.capg.ApplicationService.exception.ApplicationNotFoundException;
+import com.capg.ApplicationService.exception.DuplicateApplicationException;
+import com.capg.ApplicationService.exception.UnauthorizedException;
+import com.capg.ApplicationService.repository.ApplicationRepository;
 
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
 @Service
-@AllArgsConstructor
-public class ApplicationServiceImpl implements ApplicationService{
+@RequiredArgsConstructor
+public class ApplicationServiceImpl implements ApplicationService {
 
-    private ModelMapper modelMapper;
-    private ApplicationRepository repo;
+    private final ApplicationRepository applicationRepository;
+    private final ModelMapper modelMapper;
+    private final UserClient userClient;
+    private final JobClient jobClient;
+    private final RabbitTemplate rabbitTemplate;
+
+    @Value("${internal.secret}")
+    private String internalSecret;
 
     @Override
-    public ApplicationResponse apply(ApplicationRequest request) {
-        if(repo.existsByUserIdAndJobId(request.getUserId(), request.getJobId())){
-            throw new DuplicateApplicationException("you already applied!");
+    public ApplicationResponse applyForJob(
+            ApplicationRequest request, Long userId,
+            String role, String resumeUrl) {
+
+        log.info("Apply job service called | userId: {} | jobId: {} | role: {}",
+                userId, request.getJobId(), role);
+
+        if (!role.equalsIgnoreCase("JOB_SEEKER")) {
+            log.warn("Unauthorized apply attempt | userId: {} | role: {}", userId, role);
+            throw new UnauthorizedException(
+                    "Access Denied! Only Job Seekers can apply for jobs.");
         }
-        Application app= modelMapper.map(request, Application.class);
-        app.setStatus(ApplicationStatus.APPLIED);
-        app.setAppliedAt(LocalDateTime.now());
 
-        repo.save(app);
+        JobResponse job;
+        try {
+            job = jobClient.getJobById(request.getJobId());
+            log.debug("Fetched job details | jobId: {}", request.getJobId());
+        } catch (Exception e) {
+            log.error("Job not found | jobId: {}", request.getJobId(), e);
+            throw new RuntimeException(
+                    "Job not found with id: " + request.getJobId());
+        }
 
-        return modelMapper.map(app,ApplicationResponse.class);
+        if (applicationRepository.existsByUserIdAndJobId(
+                userId, request.getJobId())) {
+            log.warn("Duplicate application attempt | userId: {} | jobId: {}",
+                    userId, request.getJobId());
+            throw new DuplicateApplicationException(
+                    "You have already applied for this job!");
+        }
+
+        JobApplication application = new JobApplication();
+        application.setUserId(userId);
+        application.setJobId(request.getJobId());
+        application.setResumeUrl(resumeUrl);
+
+        JobApplication saved =
+                applicationRepository.save(application);
+
+        log.info("Application saved | applicationId: {} | userId: {} | jobId: {}",
+                saved.getId(), userId, request.getJobId());
+
+        ApplicationResponse response =
+                modelMapper.map(saved, ApplicationResponse.class);
+        response.setJob(job);
+
+        // Publish Job Applied event
+        try {
+            UserResponse applicant =
+                    userClient.getUserById(userId, internalSecret);
+            UserResponse recruiter =
+                    userClient.getUserById(job.getRecruiterId(), internalSecret);
+
+            JobAppliedEvent event = new JobAppliedEvent(
+                    recruiter.getEmail(),
+                    applicant.getName(),
+                    applicant.getEmail(),
+                    job.getTitle(),
+                    job.getCompanyName()
+            );
+
+            rabbitTemplate.convertAndSend(
+                    RabbitMQConfig.JOB_APPLIED_QUEUE, event);
+
+            log.info("Job applied event published | applicationId: {}", saved.getId());
+
+        } catch (Exception e) {
+            log.error("Failed to publish job applied event | applicationId: {}",
+                    saved.getId(), e);
+        }
+
+        return response;
     }
 
     @Override
-    public List<ApplicationResponse> getUserApplications(Long userId) {
+    public List<ApplicationResponse> getUserApplications(
+            Long userId, String role) {
 
-        return repo.findByUserId(userId)
+        log.info("Fetching user applications | userId: {} | role: {}", userId, role);
+
+        if (!role.equalsIgnoreCase("JOB_SEEKER")) {
+            log.warn("Unauthorized access to user applications | userId: {} | role: {}", userId, role);
+            throw new UnauthorizedException(
+                    "Access Denied! Only Job Seekers can view their applications.");
+        }
+
+        List<ApplicationResponse> result = applicationRepository.findByUserId(userId)
                 .stream()
-                .map(app -> modelMapper.map(app, ApplicationResponse.class))
-                .toList();
+                .map(app -> {
+                    ApplicationResponse response =
+                            modelMapper.map(app, ApplicationResponse.class);
+                    try {
+                        JobResponse job = jobClient.getJobById(app.getJobId());
+                        response.setJob(job);
+                    } catch (Exception e) {
+                        log.warn("Job not available | jobId: {}", app.getJobId());
+                        JobResponse job = new JobResponse();
+                        job.setTitle("Job no longer available");
+                        job.setCompanyName("N/A");
+                        job.setLocation("N/A");
+                        response.setJob(job);
+                    }
+                    return response;
+                })
+                .collect(Collectors.toList());
+
+        log.debug("Applications fetched | userId: {} | count: {}", userId, result.size());
+
+        return result;
     }
 
     @Override
-    public List<ApplicationResponse> getJobApplicants(Long jobId) {
+    public List<JobApplicationResponse> getJobApplications(
+            Long jobId, String role, Long recruiterId) {
 
-        return repo.findByJobId(jobId)
-                .stream()
-                .map(app -> modelMapper.map(app, ApplicationResponse.class))
-                .toList();
+        log.info("Fetching job applications | jobId: {} | recruiterId: {}", jobId, recruiterId);
+
+        if (!role.equalsIgnoreCase("RECRUITER")) {
+            log.warn("Unauthorized access to job applications | recruiterId: {} | role: {}", recruiterId, role);
+            throw new UnauthorizedException(
+                    "Access Denied! Only Recruiters can view job applicants.");
+        }
+
+        JobResponse job = jobClient.getJobById(jobId);
+
+        if (!job.getRecruiterId().equals(recruiterId)) {
+            log.warn("Unauthorized job access | jobId: {} | recruiterId: {}", jobId, recruiterId);
+            throw new UnauthorizedException(
+                    "Access Denied! You can view applications for your own jobs.");
+        }
+
+        List<JobApplicationResponse> result =
+                applicationRepository.findByJobId(jobId)
+                        .stream()
+                        .map(app -> {
+                            JobApplicationResponse response = new JobApplicationResponse();
+                            response.setId(app.getId());
+                            response.setUserId(app.getUserId());
+                            response.setJobId(app.getJobId());
+                            response.setResumeUrl(app.getResumeUrl());
+                            response.setStatus(app.getStatus());
+                            response.setAppliedAt(app.getAppliedAt());
+
+                            try {
+                                UserResponse user =
+                                        userClient.getUserById(app.getUserId(), internalSecret);
+                                response.setApplicantName(user.getName());
+                                response.setApplicantEmail(user.getEmail());
+                            } catch (Exception e) {
+                                log.warn("Failed to fetch applicant details | userId: {}", app.getUserId());
+                                response.setApplicantName("N/A");
+                                response.setApplicantEmail("N/A");
+                            }
+                            return response;
+                        })
+                        .collect(Collectors.toList());
+
+        log.debug("Job applications fetched | jobId: {} | count: {}", jobId, result.size());
+
+        return result;
     }
 
     @Override
-    public ApplicationResponse updateStatus(StatusUpdateRequest request) {
-        Application app = repo.findById(request.getApplicationId())
-                .orElseThrow(()-> new ResourceNotFoundException("Not found"));
+    public ApplicationResponse updateStatus(
+            Long applicationId, ApplicationStatus status,
+            Long recruiterId, String role) {
 
-        app.setStatus(request.getStatus());
-        repo.save(app);
+        log.info("Update application status | applicationId: {} | status: {} | recruiterId: {}",
+                applicationId, status, recruiterId);
 
-        return modelMapper.map(app, ApplicationResponse.class);
+        if (!role.equalsIgnoreCase("RECRUITER")) {
+            log.warn("Unauthorized status update attempt | recruiterId: {}", recruiterId);
+            throw new UnauthorizedException(
+                    "Access Denied! Only Recruiters can update application status.");
+        }
+
+        JobApplication application = applicationRepository.findById(applicationId)
+                .orElseThrow(() -> {
+                    log.error("Application not found | applicationId: {}", applicationId);
+                    return new ApplicationNotFoundException(
+                            "Application not found with id: " + applicationId);
+                });
+
+        JobResponse job = jobClient.getJobById(application.getJobId());
+
+        if (!job.getRecruiterId().equals(recruiterId)) {
+            log.warn("Unauthorized status update | applicationId: {} | recruiterId: {}",
+                    applicationId, recruiterId);
+            throw new UnauthorizedException(
+                    "Access Denied! You can only update applications for your own jobs.");
+        }
+
+        application.setStatus(status);
+        JobApplication updated = applicationRepository.save(application);
+
+        log.info("Application status updated | applicationId: {} | status: {}",
+                applicationId, status);
+
+        ApplicationResponse response =
+                modelMapper.map(updated, ApplicationResponse.class);
+
+        try {
+            JobResponse job1 = jobClient.getJobById(updated.getJobId());
+            response.setJob(job1);
+        } catch (Exception e) {
+            log.warn("Failed to fetch job details | jobId: {}", updated.getJobId());
+        }
+
+        // Publish status event
+        try {
+            UserResponse applicant =
+                    userClient.getUserById(updated.getUserId(), internalSecret);
+            JobResponse job1 =
+                    jobClient.getJobById(updated.getJobId());
+
+            ApplicationStatusEvent event =
+                    new ApplicationStatusEvent(
+                            applicant.getEmail(),
+                            applicant.getName(),
+                            job1.getTitle(),
+                            job1.getCompanyName(),
+                            status.name()
+                    );
+
+            rabbitTemplate.convertAndSend(
+                    RabbitMQConfig.APPLICATION_STATUS_QUEUE, event);
+
+            log.info("Application status event published | applicationId: {}", applicationId);
+
+        } catch (Exception e) {
+            log.error("Failed to publish status event | applicationId: {}", applicationId, e);
+        }
+
+        return response;
     }
 
     @Override
-    @org.springframework.transaction.annotation.Transactional
-    public void deleteByUserId(Long userId) {
-        repo.deleteByUserId(userId);
+    public void deleteUserApplications(Long userId) {
+        log.info("Deleting applications for userId: {}", userId);
+        applicationRepository.deleteByUserId(userId);
     }
 
     @Override
-    @org.springframework.transaction.annotation.Transactional
-    public void deleteByJobId(Long jobId) {
-        repo.deleteByJobId(jobId);
+    public void deleteJobApplications(Long jobId) {
+        log.info("Deleting applications for jobId: {}", jobId);
+        applicationRepository.deleteByJobId(jobId);
+    }
+
+    @Override
+    public Long getTotalApplications() {
+        Long count = applicationRepository.count();
+        log.debug("Total applications count: {}", count);
+        return count;
     }
 }
+

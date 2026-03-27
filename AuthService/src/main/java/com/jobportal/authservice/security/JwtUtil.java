@@ -9,8 +9,6 @@ import org.springframework.stereotype.Component;
 
 import java.security.Key;
 import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
 
 @Component
 public class JwtUtil {
@@ -25,18 +23,14 @@ public class JwtUtil {
         return Keys.hmacShaKeyFor(jwtSecret.getBytes());
     }
 
-    // UPDATED: now includes role and userId inside the token
-    // These are needed by the API Gateway to extract user info
-    // and pass as headers (X-User-Role, X-User-Id) to other services
-    public String generateToken(String email, String role, Long userId) {
-
-        Map<String, Object> claims = new HashMap<>();
-        claims.put("role", role);
-        claims.put("userId", userId);
-
+    // GENERATE TOKEN
+    // Now includes userId and role in token claims
+    // so API Gateway can extract them
+    public String generateToken(String email, Long userId, String role) {
         return Jwts.builder()
-                .setClaims(claims)
                 .setSubject(email)
+                .claim("userId", userId)
+                .claim("role", role)       
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(
                         System.currentTimeMillis() + jwtExpiration))
@@ -49,20 +43,25 @@ public class JwtUtil {
         return getClaims(token).getSubject();
     }
 
-    // Validate token - used by JwtAuthFilter
+    // Validate token
     public boolean validateToken(String token, String email) {
         try {
             String extractedEmail = extractEmail(token);
-            return extractedEmail.equals(email) && !isTokenExpired(token);
+            return extractedEmail.equals(email)
+                    && !isTokenExpired(token);
         } catch (Exception e) {
             return false;
         }
     }
 
+    // Check if token is expired
     private boolean isTokenExpired(String token) {
-        return getClaims(token).getExpiration().before(new Date());
+        return getClaims(token)
+                .getExpiration()
+                .before(new Date());
     }
 
+    // Get all claims from token
     private Claims getClaims(String token) {
         return Jwts.parserBuilder()
                 .setSigningKey(getSigningKey())
