@@ -1,4 +1,4 @@
-package com.capg.ApplicationService.config;
+package com.jobportal.notificationservice.config;
 
 import java.time.Duration;
 

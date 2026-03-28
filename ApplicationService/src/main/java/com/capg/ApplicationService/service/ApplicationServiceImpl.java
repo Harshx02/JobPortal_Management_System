@@ -105,7 +105,7 @@ public class ApplicationServiceImpl implements ApplicationService {
             );
 
             rabbitTemplate.convertAndSend(
-                    RabbitMQConfig.JOB_APPLIED_QUEUE, event);
+                    RabbitMQConfig.EXCHANGE, RabbitMQConfig.RK_JOB_APPLIED, event);
 
             log.info("Job applied event published | applicationId: {}", saved.getId());
 
@@ -268,7 +268,7 @@ public class ApplicationServiceImpl implements ApplicationService {
                     );
 
             rabbitTemplate.convertAndSend(
-                    RabbitMQConfig.APPLICATION_STATUS_QUEUE, event);
+                    RabbitMQConfig.EXCHANGE, RabbitMQConfig.RK_APPLICATION_STATUS, event);
 
             log.info("Application status event published | applicationId: {}", applicationId);
 

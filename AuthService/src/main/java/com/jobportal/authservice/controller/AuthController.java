@@ -25,6 +25,7 @@ import com.jobportal.authservice.dto.response.AuthResponse;
 import com.jobportal.authservice.dto.response.UserResponse;
 import com.jobportal.authservice.service.AuthService;
 
+import org.springframework.beans.factory.annotation.Value;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 
@@ -36,6 +37,9 @@ public class AuthController {
 
     @Autowired
     private AuthService authService;
+
+    @Value("${internal.secret}")
+    private String internalSecret;
 
     @PostMapping("/register")
     public ResponseEntity<AuthResponse> register(
@@ -94,24 +98,45 @@ public class AuthController {
     }
 
     @GetMapping("/users")
-    public ResponseEntity<List<UserResponse>> getAllUsers() {
+    public ResponseEntity<List<UserResponse>> getAllUsers(
+            @RequestHeader(value = "X-User-Role", required = false) String role,
+            @RequestHeader(value = "X-Internal-Secret", required = false) String secret) {
 
-        log.info("Fetch all users API called");
+        log.info("Fetch all users API called | role: {} | secret: {}", role, secret != null ? "PRESENT" : "MISSING");
 
-        List<UserResponse> users = authService.getAllUsers();
+        // ✅ Security check: Allow if ADMIN or valid Internal Secret
+        if ((role != null && role.equalsIgnoreCase("ADMIN")) ||
+            (secret != null && secret.equals(internalSecret))) {
+            
+            List<UserResponse> users = authService.getAllUsers();
+            return ResponseEntity.ok(users);
+        }
 
-        return ResponseEntity.ok(users);
+        log.warn("Unauthorized access to getAllUsers | role: {}", role);
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
     }
 
     @GetMapping("/users/{id}")
     public ResponseEntity<UserResponse> getUserById(
-            @PathVariable Long id) {
+            @PathVariable Long id,
+            @RequestHeader(value = "X-User-Id", required = false) Long loggedInUserId,
+            @RequestHeader(value = "X-User-Role", required = false) String role,
+            @RequestHeader(value = "X-Internal-Secret", required = false) String secret) {
 
-        log.info("Fetch user by ID API called | userId: {}", id);
+        log.info("Fetch user by ID API called | targetId: {} | loggedInUserId: {} | role: {}", 
+                id, loggedInUserId, role);
 
-        UserResponse response = authService.getUserById(id);
+        // ✅ Security check: Allow if self, ADMIN, or valid Internal Secret
+        if ((loggedInUserId != null && loggedInUserId.equals(id)) ||
+            (role != null && role.equalsIgnoreCase("ADMIN")) ||
+            (secret != null && secret.equals(internalSecret))) {
 
-        return ResponseEntity.ok(response);
+            UserResponse response = authService.getUserById(id);
+            return ResponseEntity.ok(response);
+        }
+
+        log.warn("Unauthorized access to getUserById | targetId: {} | loggedInUserId: {}", id, loggedInUserId);
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
     }
 
     @PutMapping("/users/profile")

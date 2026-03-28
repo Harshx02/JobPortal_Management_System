@@ -61,7 +61,7 @@ public class JobServiceImpl implements JobService {
             );
 
             rabbitTemplate.convertAndSend(
-                    RabbitMQConfig.JOB_POSTED_QUEUE, event);
+                    RabbitMQConfig.EXCHANGE, RabbitMQConfig.RK_JOB_POSTED, event);
 
             log.info("Job event published | jobId: {}", saved.getId());
 

@@ -4,61 +4,51 @@ import org.springframework.amqp.core.Binding;
 import org.springframework.amqp.core.BindingBuilder;
 import org.springframework.amqp.core.Queue;
 import org.springframework.amqp.core.TopicExchange;
+import org.springframework.amqp.rabbit.connection.ConnectionFactory;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class RabbitMQConfig {
 
-    // Queue names
-    public static final String JOBS_DELETED_QUEUE = "jobs-deleted";
-    public static final String USER_DELETED_QUEUE = "user-deleted";
-    public static final String USER_DELETE_REQUESTED_QUEUE = "user-delete-requested";
+    // Queue name
+    public static final String JOBS_DELETED_QUEUE = "jobs.deleted";
 
-    // Exchange names
+    // Exchange name
     public static final String EXCHANGE = "job-portal-exchange";
 
-    // Declare queues
+    // Routing Keys
+    public static final String RK_JOBS_DELETED = "job.jobs.deleted";
+    public static final String RK_USER_DELETED = "auth.user.deleted";
+
+    @Bean
+    public TopicExchange exchange() {
+        return new TopicExchange(EXCHANGE, true, false);
+    }
+
     @Bean
     public Queue jobsDeletedQueue() {
         return new Queue(JOBS_DELETED_QUEUE, true);
     }
 
     @Bean
-    public Queue userDeletedQueue() {
-        return new Queue(USER_DELETED_QUEUE, true);
-    }
-
-    @Bean
-    public Queue userDeleteRequestedQueue() {
-        return new Queue(USER_DELETE_REQUESTED_QUEUE, true);
-    }
-
-    // Declare exchange
-    @Bean
-    public TopicExchange exchange() {
-        return new TopicExchange(EXCHANGE, true, false);
-    }
-
-    // Declare bindings
-    @Bean
     public Binding bindJobsDeleted(Queue jobsDeletedQueue, TopicExchange exchange) {
         return BindingBuilder.bind(jobsDeletedQueue)
                 .to(exchange)
-                .with("*.jobs.deleted");
+                .with(RK_JOBS_DELETED);
     }
 
     @Bean
-    public Binding bindUserDeleted(Queue userDeletedQueue, TopicExchange exchange) {
-        return BindingBuilder.bind(userDeletedQueue)
-                .to(exchange)
-                .with("*.user.deleted");
+    public Jackson2JsonMessageConverter messageConverter() {
+        return new Jackson2JsonMessageConverter();
     }
 
     @Bean
-    public Binding bindUserDeleteRequested(Queue userDeleteRequestedQueue, TopicExchange exchange) {
-        return BindingBuilder.bind(userDeleteRequestedQueue)
-                .to(exchange)
-                .with("*.user.delete.requested");
+    public RabbitTemplate rabbitTemplate(ConnectionFactory connectionFactory) {
+        RabbitTemplate template = new RabbitTemplate(connectionFactory);
+        template.setMessageConverter(messageConverter());
+        return template;
     }
 }

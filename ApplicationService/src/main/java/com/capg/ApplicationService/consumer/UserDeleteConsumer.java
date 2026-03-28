@@ -4,7 +4,7 @@ import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Component;
 
-import com.capg.ApplicationService.config.KafkaConfig;
+import com.capg.ApplicationService.config.RabbitMQConfig;
 import com.capg.ApplicationService.repository.ApplicationRepository;
 import com.capg.ApplicationService.event.UserDeleteEvent;
 
@@ -19,7 +19,7 @@ public class UserDeleteConsumer {
     private final ApplicationRepository applicationRepository;
     private final RabbitTemplate rabbitTemplate;
 
-    @RabbitListener(queues = KafkaConfig.USER_DELETE_REQUESTED_QUEUE)
+    @RabbitListener(queues = RabbitMQConfig.USER_DELETE_REQUESTED_QUEUE)
     public void handle(UserDeleteEvent event) {
 
         log.info("Received USER_DELETE_REQUESTED | userId: {}", event.getUserId());
@@ -36,7 +36,7 @@ public class UserDeleteConsumer {
         event.setStatus("APPLICATION_DELETED");
 
         // ✅ Publish next event
-        rabbitTemplate.convertAndSend(KafkaConfig.EXCHANGE, "app.application.deleted", event);
+        rabbitTemplate.convertAndSend(RabbitMQConfig.EXCHANGE, RabbitMQConfig.RK_APPLICATION_DELETED, event);
 
         log.info("Published APPLICATION_DELETED event | userId: {}", event.getUserId());
     }

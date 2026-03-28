@@ -9,6 +9,6 @@ import org.springframework.cloud.openfeign.EnableFeignClients;
 public class AdminApplication {
     public static void main(String[] args) {
         SpringApplication.run(AdminApplication.class, args);
-        System.out.println("Admin Service is running");
+        System.out.println("Admin Service is running on port 8084!");
     }
 }

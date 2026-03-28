@@ -4,7 +4,7 @@ import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Component;
 
-import com.jobportal.authservice.config.KafkaConfig;
+import com.jobportal.authservice.config.RabbitMQConfig;
 import com.jobportal.authservice.event.UserDeleteEvent;
 import com.jobportal.authservice.repository.UserRepository;
 
@@ -19,7 +19,7 @@ public class UserDeleteConsumer {
     private final UserRepository userRepository;
     private final RabbitTemplate rabbitTemplate;
 
-    @RabbitListener(queues = KafkaConfig.JOBS_DELETED_QUEUE)
+    @RabbitListener(queues = RabbitMQConfig.JOBS_DELETED_QUEUE)
     public void handle(UserDeleteEvent event) {
 
         log.info("Received JOBS_DELETED | userId: {}", event.getUserId());
@@ -36,7 +36,7 @@ public class UserDeleteConsumer {
         event.setStatus("COMPLETED");
 
         // ✅ Publish final event
-        rabbitTemplate.convertAndSend(KafkaConfig.EXCHANGE, "auth.user.deleted", event);
+        rabbitTemplate.convertAndSend(RabbitMQConfig.EXCHANGE, RabbitMQConfig.RK_USER_DELETED, event);
 
         log.info("Published USER_DELETED event | userId: {}", event.getUserId());
     }

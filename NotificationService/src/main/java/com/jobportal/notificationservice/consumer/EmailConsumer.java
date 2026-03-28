@@ -7,6 +7,7 @@ import com.jobportal.notificationservice.config.RabbitMQConfig;
 import com.jobportal.notificationservice.dto.ApplicationStatusEvent;
 import com.jobportal.notificationservice.dto.JobAppliedEvent;
 import com.jobportal.notificationservice.dto.JobPostedEvent;
+import com.jobportal.notificationservice.dto.UserDeleteEvent;
 import com.jobportal.notificationservice.service.EmailService;
 
 import lombok.RequiredArgsConstructor;
@@ -72,5 +73,15 @@ public class EmailConsumer {
                 event.getCompanyName(),
                 event.getStatus()
         );
+    }
+
+    // Listens: application.deleted
+    // Triggered by: Application Service after deleting apps
+    @RabbitListener(queues = RabbitMQConfig.APPLICATION_DELETED_QUEUE)
+    public void handleApplicationDeleted(UserDeleteEvent event) {
+        System.out.println(
+                "Received application deleted event for user: "
+                + event.getUserId());
+        // Optional: Send email if needed
     }
 }

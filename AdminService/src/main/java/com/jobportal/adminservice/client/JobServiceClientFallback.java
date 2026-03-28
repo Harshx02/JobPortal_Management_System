@@ -17,7 +17,7 @@ public class JobServiceClientFallback implements FallbackFactory<JobServiceClien
         return new JobServiceClient() {
             @Override
             public PageResponse getAllJobs() {
-                log.error("JobServiceClient getAllJobs failed - returning empty response", cause);
+            	log.error("JobServiceClient getAllJobs failed - returning empty response", cause);
                 return PageResponse.builder()
                     .content(new java.util.ArrayList<>())
                     .totalElements(0L)

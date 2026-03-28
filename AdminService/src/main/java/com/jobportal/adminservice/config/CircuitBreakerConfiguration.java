@@ -1,49 +1,44 @@
 package com.jobportal.adminservice.config;
 
-import org.springframework.cloud.circuitbreaker.resilience4j.Resilience4jCircuitBreakerFactory;
-import org.springframework.cloud.circuitbreaker.resilience4j.Resilience4jConfigBuilder;
+import java.time.Duration;
+
+import org.springframework.cloud.circuitbreaker.resilience4j.Resilience4JCircuitBreakerFactory;
 import org.springframework.cloud.client.circuitbreaker.CircuitBreakerFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;
+import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
+import io.github.resilience4j.timelimiter.TimeLimiterConfig;
+import io.github.resilience4j.timelimiter.TimeLimiterRegistry;
 
 @Configuration
 public class CircuitBreakerConfiguration {
 
     @Bean
-    public CircuitBreakerFactory circuitBreakerFactory() {
-        Resilience4jCircuitBreakerFactory factory = new Resilience4jCircuitBreakerFactory();
-        factory.configureDefault(id -> new Resilience4jConfigBuilder(id)
-            .circuitBreakerConfig(CircuitBreakerConfig.custom()
-                .slidingWindowSize(10)
-                .failureRateThreshold(50)
-                .waitDurationInOpenState(java.time.Duration.ofSeconds(10))
-                .permittedNumberOfCallsInHalfOpenState(3)
-                .automaticTransitionFromOpenToHalfOpenEnabled(true)
-                .build())
-            .timeLimiterConfig(org.springframework.cloud.circuitbreaker.resilience4j.Resilience4jConfigBuilder.TimeLimiterConfigBuilder
-                .of()
-                .timeoutDuration(java.time.Duration.ofSeconds(5))
-                .cancelRunningFuture(true)
-                .build())
-            .build());
+    public CircuitBreakerFactory<?, ?> circuitBreakerFactory(
+            CircuitBreakerRegistry circuitBreakerRegistry,
+            TimeLimiterRegistry timeLimiterRegistry) {
 
-        // Add event listeners for monitoring
-        factory.addCircuitBreakerCustomizer((circuitBreaker) ->
-            circuitBreaker.getEventPublisher()
-                .onStateTransition(event ->
-                    System.out.println("CircuitBreaker state transitioned: " + event)), "auth-service");
+        // ✅ Proper constructor injection (NO nulls)
+        Resilience4JCircuitBreakerFactory factory =
+                new Resilience4JCircuitBreakerFactory(circuitBreakerRegistry, timeLimiterRegistry, null);
 
-        factory.addCircuitBreakerCustomizer((circuitBreaker) ->
-            circuitBreaker.getEventPublisher()
-                .onStateTransition(event ->
-                    System.out.println("CircuitBreaker state transitioned: " + event)), "job-service");
-
-        factory.addCircuitBreakerCustomizer((circuitBreaker) ->
-            circuitBreaker.getEventPublisher()
-                .onStateTransition(event ->
-                    System.out.println("CircuitBreaker state transitioned: " + event)), "application-service");
+        factory.configureDefault(id ->
+                new org.springframework.cloud.circuitbreaker.resilience4j.Resilience4JConfigBuilder(id)
+                        .circuitBreakerConfig(CircuitBreakerConfig.custom()
+                                .slidingWindowSize(10)
+                                .failureRateThreshold(50)
+                                .waitDurationInOpenState(Duration.ofSeconds(10))
+                                .permittedNumberOfCallsInHalfOpenState(3)
+                                .automaticTransitionFromOpenToHalfOpenEnabled(true)
+                                .build())
+                        .timeLimiterConfig(TimeLimiterConfig.custom()
+                                .timeoutDuration(Duration.ofSeconds(5))
+                                .cancelRunningFuture(true)
+                                .build())
+                        .build()
+        );
 
         return factory;
     }
