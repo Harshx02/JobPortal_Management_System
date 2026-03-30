@@ -6,7 +6,7 @@ services:
   # EUREKA SERVER
   # ===============================
   eureka-server:
-    build: ./EurekaServer
+    build: ./eureka-server
     container_name: eureka-server
     ports:
       - "8761:8761"
@@ -17,7 +17,7 @@ services:
   # API GATEWAY
   # ===============================
   api-gateway:
-    build: ./ApiGateway
+    build: ./api-gateway
     container_name: api-gateway
     ports:
       - "8085:8085"
@@ -92,6 +92,7 @@ services:
       - .env
     environment:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE}
+      SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD}
 
       SPRING_RABBITMQ_HOST: rabbitmq
@@ -124,6 +125,7 @@ services:
       - .env
     environment:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE}
+      SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD}
 
       SPRING_RABBITMQ_HOST: rabbitmq
@@ -152,6 +154,7 @@ services:
       - .env
     environment:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE}
+      SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD}
 
       SPRING_RABBITMQ_HOST: rabbitmq
@@ -184,6 +187,7 @@ services:
       - .env
     environment:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE}
+      SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD}
 
       INTERNAL_SECRET: ${INTERNAL_SECRET}

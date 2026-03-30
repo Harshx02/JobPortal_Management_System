@@ -147,5 +147,10 @@ public class AdminController {
 
         return ResponseEntity.ok(reports);
     }
+    
+    public void Test() {
+    	String s  = null;
+    	System.out.println(s);
+    }
 }
 
