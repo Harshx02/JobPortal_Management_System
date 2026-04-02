@@ -1,0 +1,547 @@
+version: "3.8"
+
+services:
+
+  # ===============================
+  # EUREKA SERVER
+  # ===============================
+  eureka-server:
+    build: ./eureka-server
+    container_name: eureka-server
+    ports:
+      - "8761:8761"
+    networks:
+      - jobportal-network
+
+  # ===============================
+  # API GATEWAY
+  # ===============================
+  api-gateway:
+    build: ./api-gateway
+    container_name: api-gateway
+    ports:
+      - "8085:8085"
+    env_file:
+      - .env
+    environment:
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      JWT_SECRET: ${JWT_SECRET}
+      ZIPKIN_URL: http://zipkin:9411/api/v2/spans
+    depends_on:
+      eureka-server:
+        condition: service_started
+      zipkin:
+        condition: service_started
+    networks:
+      - jobportal-network
+
+  # ===============================
+  # MYSQL DATABASE
+  # ===============================
+  mysql:
+    image: mysql:8
+    container_name: mysql
+    volumes:
+      - mysql-data:/var/lib/mysql
+    env_file:
+      - .env
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+    ports:
+      - "3306:3307"
+    networks:
+      - jobportal-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ===============================
+  # RABBITMQ
+  # ===============================
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    env_file:
+      - .env
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USERNAME}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - jobportal-network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "check_running"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ===============================
+  # REDIS
+  # ===============================
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis-data:/data
+    networks:
+      - jobportal-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ===============================
+  # AUTH SERVICE
+  # ===============================
+  auth-service:
+    build: ./AuthService
+    container_name: auth-service
+    ports:
+      - "8081:8081"
+    env_file:
+      - .env
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE}
+      DB_USERNAME: root
+      DB_PASSWORD: ${MYSQL_PASSWORD}
+      RABBITMQ_USERNAME: ${RABBITMQ_USERNAME}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_DATA_REDIS_HOST: redis
+      JWT_SECRET: ${JWT_SECRET}
+      INTERNAL_SECRET: ${INTERNAL_SECRET}
+      CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME}
+      CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY}
+      CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET}
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      ZIPKIN_URL: http://zipkin:9411/api/v2/spans
+    depends_on:
+      mysql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      eureka-server:
+        condition: service_started
+      zipkin:
+        condition: service_started
+    networks:
+      - jobportal-network
+
+  # ===============================
+  # JOB SERVICE
+  # ===============================
+  job-service:
+    build: ./JobService
+    container_name: job-service
+    ports:
+      - "8082:8082"
+    env_file:
+      - .env
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE}
+      DB_USERNAME: root
+      DB_PASSWORD: ${MYSQL_PASSWORD}
+      RABBITMQ_USERNAME: ${RABBITMQ_USERNAME}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_DATA_REDIS_HOST: redis
+      INTERNAL_SECRET: ${INTERNAL_SECRET}
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      ZIPKIN_URL: http://zipkin:9411/api/v2/spans
+    depends_on:
+      mysql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      eureka-server:
+        condition: service_started
+      zipkin:
+        condition: service_started
+    networks:
+      - jobportal-network
+
+  # ===============================
+  # APPLICATION SERVICE
+  # ===============================
+  application-service:
+    build: ./ApplicationService
+    container_name: application-service
+    ports:
+      - "8083:8083"
+    env_file:
+      - .env
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE}
+      DB_USERNAME: root
+      DB_PASSWORD: ${MYSQL_PASSWORD}
+      RABBITMQ_USERNAME: ${RABBITMQ_USERNAME}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_DATA_REDIS_HOST: redis
+      INTERNAL_SECRET: ${INTERNAL_SECRET}
+      CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME}
+      CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY}
+      CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET}
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      ZIPKIN_URL: http://zipkin:9411/api/v2/spans
+    depends_on:
+      mysql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      eureka-server:
+        condition: service_started
+      zipkin:
+        condition: service_started
+    networks:
+      - jobportal-network
+
+  # ===============================
+  # ADMIN SERVICE
+  # ===============================
+  admin-service:
+    build: ./AdminService
+    container_name: admin-service
+    ports:
+      - "8084:8084"
+    env_file:
+      - .env
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE}
+      DB_USERNAME: root
+      DB_PASSWORD: ${MYSQL_PASSWORD}
+      RABBITMQ_USERNAME: ${RABBITMQ_USERNAME}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+      INTERNAL_SECRET: ${INTERNAL_SECRET}
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      ZIPKIN_URL: http://zipkin:9411/api/v2/spans
+    depends_on:
+      mysql:
+        condition: service_healthy
+      eureka-server:
+        condition: service_started
+      zipkin:
+        condition: service_started
+    networks:
+      - jobportal-network
+
+  # ===============================
+  # NOTIFICATION SERVICE
+  # ===============================
+  notification-service:
+    build: ./NotificationService
+    container_name: notification-service
+    ports:
+      - "8086:8086"
+    env_file:
+      - .env
+    environment:
+      RABBITMQ_USERNAME: ${RABBITMQ_USERNAME}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_DATA_REDIS_HOST: redis
+      INTERNAL_SECRET: ${INTERNAL_SECRET}
+      EMAIL: ${MAIL_USERNAME}
+      PASSWORD: ${MAIL_PASSWORD}
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      ZIPKIN_URL: http://zipkin:9411/api/v2/spans
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      eureka-server:
+        condition: service_started
+      zipkin:
+        condition: service_started
+    networks:
+      - jobportal-network
+
+  # ===============================
+  # ZIPKIN (Distributed Tracing)
+  # ===============================
+  zipkin:
+    image: openzipkin/zipkin
+    container_name: zipkin
+    ports:
+      - "9411:9411"
+    networks:
+      - jobportal-network
+
+  # ===============================
+  # PROMETHEUS
+  # ===============================
+  prometheus:
+    image: prom/prometheus:v2.51.2
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    configs:
+      - source: prometheus_config
+        target: /etc/prometheus/prometheus.yml
+    networks:
+      - jobportal-network
+    depends_on:
+      eureka-server:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ===============================
+  # GRAFANA
+  # ===============================
+  grafana:
+    image: grafana/grafana:10.4.2
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_PATHS_PROVISIONING: /etc/grafana/provisioning
+    volumes:
+      - grafana-data:/var/lib/grafana
+    configs:
+      - source: grafana_datasources
+        target: /etc/grafana/provisioning/datasources/prometheus.yml
+      - source: grafana_dashboards_prov
+        target: /etc/grafana/provisioning/dashboards/dashboards.yml
+      - source: grafana_jvm_dashboard
+        target: /etc/grafana/dashboards/jvm-metrics.json
+    networks:
+      - jobportal-network
+    depends_on:
+      prometheus:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ===============================
+  # SONARQUBE
+  # ===============================
+  sonarqube:
+    image: sonarqube:10.5-community
+    container_name: sonarqube
+    ports:
+      - "9000:9000"
+    environment:
+      SONAR_ES_BOOTSTRAP_CHECKS_DISABLE: "true"
+    volumes:
+      - sonarqube-data:/opt/sonarqube/data
+      - sonarqube-logs:/opt/sonarqube/logs
+      - sonarqube-extensions:/opt/sonarqube/extensions
+    networks:
+      - jobportal-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9000/api/system/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+
+configs:
+  prometheus_config:
+    content: |
+      global:
+        scrape_interval: 15s
+        scrape_timeout: 10s
+        evaluation_interval: 15s
+      scrape_configs:
+        - job_name: 'eureka-server'
+          metrics_path: '/actuator/prometheus'
+          static_configs:
+            - targets: ['eureka-server:8761']
+              labels:
+                service: 'eureka-server'
+        - job_name: 'api-gateway'
+          metrics_path: '/actuator/prometheus'
+          static_configs:
+            - targets: ['api-gateway:8085']
+              labels:
+                service: 'api-gateway'
+        - job_name: 'auth-service'
+          metrics_path: '/actuator/prometheus'
+          static_configs:
+            - targets: ['auth-service:8081']
+              labels:
+                service: 'auth-service'
+        - job_name: 'job-service'
+          metrics_path: '/actuator/prometheus'
+          static_configs:
+            - targets: ['job-service:8082']
+              labels:
+                service: 'job-service'
+        - job_name: 'application-service'
+          metrics_path: '/actuator/prometheus'
+          static_configs:
+            - targets: ['application-service:8083']
+              labels:
+                service: 'application-service'
+        - job_name: 'admin-service'
+          metrics_path: '/actuator/prometheus'
+          static_configs:
+            - targets: ['admin-service:8084']
+              labels:
+                service: 'admin-service'
+        - job_name: 'notification-service'
+          metrics_path: '/actuator/prometheus'
+          static_configs:
+            - targets: ['notification-service:8086']
+              labels:
+                service: 'notification-service'
+
+  grafana_datasources:
+    content: |
+      apiVersion: 1
+      datasources:
+        - name: Prometheus
+          type: prometheus
+          access: proxy
+          url: http://prometheus:9090
+          isDefault: true
+          editable: false
+          jsonData:
+            timeInterval: "15s"
+            httpMethod: POST
+
+  grafana_dashboards_prov:
+    content: |
+      apiVersion: 1
+      providers:
+        - name: "Job Portal Dashboards"
+          orgId: 1
+          folder: "Job Portal"
+          type: file
+          disableDeletion: false
+          updateIntervalSeconds: 30
+          allowUiUpdates: true
+          options:
+            path: /etc/grafana/dashboards
+
+  grafana_jvm_dashboard:
+    content: |
+      {
+        "title": "JVM Metrics - Job Portal",
+        "uid": "jvm-job-portal",
+        "tags": ["java", "jvm", "spring-boot"],
+        "timezone": "browser",
+        "schemaVersion": 38,
+        "refresh": "30s",
+        "templating": {
+          "list": [
+            {
+              "name": "service",
+              "type": "query",
+              "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+              "query": "label_values(jvm_memory_used_bytes, job)",
+              "refresh": 2,
+              "includeAll": true,
+              "multi": true,
+              "label": "Service"
+            }
+          ]
+        },
+        "panels": [
+          {
+            "id": 1,
+            "title": "JVM Heap Used",
+            "type": "timeseries",
+            "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+            "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+            "targets": [
+              {
+                "expr": "jvm_memory_used_bytes{job=~\"$service\", area=\"heap\"}",
+                "legendFormat": "{{job}} - {{id}}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": { "unit": "bytes", "color": { "mode": "palette-classic" } }
+            }
+          },
+          {
+            "id": 2,
+            "title": "JVM Non-Heap Used",
+            "type": "timeseries",
+            "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+            "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+            "targets": [
+              {
+                "expr": "jvm_memory_used_bytes{job=~\"$service\", area=\"nonheap\"}",
+                "legendFormat": "{{job}} - {{id}}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": { "unit": "bytes", "color": { "mode": "palette-classic" } }
+            }
+          },
+          {
+            "id": 3,
+            "title": "JVM Threads",
+            "type": "timeseries",
+            "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+            "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+            "targets": [
+              {
+                "expr": "jvm_threads_live_threads{job=~\"$service\"}",
+                "legendFormat": "{{job}} - live"
+              },
+              {
+                "expr": "jvm_threads_daemon_threads{job=~\"$service\"}",
+                "legendFormat": "{{job}} - daemon"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": { "unit": "short", "color": { "mode": "palette-classic" } }
+            }
+          }
+        ],
+        "__inputs": [
+          {
+            "name": "DS_PROMETHEUS",
+            "label": "Prometheus",
+            "type": "datasource",
+            "pluginId": "prometheus"
+          }
+        ],
+        "__requires": [
+          { "type": "datasource", "id": "prometheus", "name": "Prometheus", "version": "1.0.0" }
+        ]
+      }
+
+networks:
+  jobportal-network:
+    driver: bridge
+
+volumes:
+  mysql-data:
+  redis-data:
+  grafana-data:
+  sonarqube-data:
+  sonarqube-logs:
+  sonarqube-extensions:

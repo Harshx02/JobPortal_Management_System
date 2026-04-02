@@ -1,0 +1,135 @@
+<app-navbar />
+
+<div class="bg-gray-50 min-h-screen">
+  <!-- Page Header -->
+  <div class="bg-white border-b border-gray-100 py-8 px-4">
+    <div class="page-container">
+      <h1 class="text-3xl font-bold text-gray-900">Find Jobs</h1>
+      <p class="text-gray-500 mt-1">
+        @if (loading()) { Searching… }
+        @else { {{ totalJobs() | number }} jobs found }
+      </p>
+    </div>
+  </div>
+
+  <div class="page-container py-8">
+    <div class="flex flex-col lg:flex-row gap-8">
+
+      <!-- ── FILTER SIDEBAR ── -->
+      <aside class="w-full lg:w-72 flex-shrink-0">
+        <div class="card p-6 sticky top-20" [formGroup]="filterForm">
+          <div class="flex items-center justify-between mb-5">
+            <h2 class="font-bold text-gray-900 text-lg">Filters</h2>
+            <button class="text-blue-600 text-sm font-medium hover:underline" (click)="clearFilters()">Clear all</button>
+          </div>
+
+          <!-- Title -->
+          <div class="mb-5">
+            <label class="form-label">Job Title</label>
+            <input type="text" formControlName="title" class="form-input"
+                   placeholder="e.g. React Developer" (input)="onFilterChange()" />
+          </div>
+
+          <!-- Location -->
+          <div class="mb-5">
+            <label class="form-label">Location</label>
+            <input type="text" formControlName="location" class="form-input"
+                   placeholder="e.g. Bangalore" (input)="onFilterChange()" />
+          </div>
+
+          <!-- Company -->
+          <div class="mb-5">
+            <label class="form-label">Company</label>
+            <input type="text" formControlName="companyName" class="form-input"
+                   placeholder="e.g. Google" (input)="onFilterChange()" />
+          </div>
+
+          <!-- Salary Range -->
+          <div class="mb-5">
+            <label class="form-label">Salary Range (₹)</label>
+            <div class="flex gap-2">
+              <input type="number" formControlName="minSalary" class="form-input"
+                     placeholder="Min" (input)="onFilterChange()" />
+              <input type="number" formControlName="maxSalary" class="form-input"
+                     placeholder="Max" (input)="onFilterChange()" />
+            </div>
+          </div>
+
+          <!-- Experience -->
+          <div class="mb-5">
+            <label class="form-label">Experience (years)</label>
+            <div class="flex gap-2">
+              <input type="number" formControlName="minExperience" class="form-input"
+                     placeholder="Min" min="0" (input)="onFilterChange()" />
+              <input type="number" formControlName="maxExperience" class="form-input"
+                     placeholder="Max" min="0" (input)="onFilterChange()" />
+            </div>
+          </div>
+
+          <button class="btn-primary w-full justify-center" (click)="doSearch(0)">
+            Apply Filters
+          </button>
+        </div>
+      </aside>
+
+      <!-- ── RESULTS ── -->
+      <main class="flex-1 min-w-0">
+        @if (loading()) {
+          <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+            @for (i of [1,2,3,4,5,6,7,8,9]; track i) {
+              <div class="card p-6 h-56">
+                <div class="skeleton h-4 w-3/4 mb-3"></div>
+                <div class="skeleton h-3 w-1/2 mb-5"></div>
+                <div class="skeleton h-3 w-full mb-2"></div>
+                <div class="skeleton h-3 w-4/5 mb-2"></div>
+                <div class="skeleton h-8 w-32 mt-auto ml-auto rounded-lg"></div>
+              </div>
+            }
+          </div>
+        } @else if (error()) {
+          <div class="flex flex-col items-center justify-center py-20 text-gray-400">
+            <div class="text-5xl mb-4">⚠️</div>
+            <p class="text-lg">{{ error() }}</p>
+            <button class="btn-primary mt-4" (click)="doSearch(0)">Retry</button>
+          </div>
+        } @else if (jobs().length === 0) {
+          <div class="flex flex-col items-center justify-center py-20 text-gray-400">
+            <div class="text-5xl mb-4">🔍</div>
+            <p class="text-xl font-semibold text-gray-600">No jobs match your filters</p>
+            <p class="mt-1">Try adjusting your search criteria</p>
+            <button class="btn-primary mt-4" (click)="clearFilters()">Clear Filters</button>
+          </div>
+        } @else {
+          <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+            @for (job of jobs(); track job.id) {
+              <app-job-card [job]="job" />
+            }
+          </div>
+
+          <!-- Pagination -->
+          @if (totalPages() > 1) {
+            <div class="flex items-center justify-center gap-2 mt-10 flex-wrap">
+              <button class="btn-outline py-2 px-4 text-sm disabled:opacity-40"
+                      [disabled]="page() === 0" (click)="goToPage(page() - 1)">← Prev</button>
+
+              @for (p of pages; track p) {
+                @if (p < 5 || p === totalPages() - 1 || Math.abs(p - page()) <= 1) {
+                  <button class="w-9 h-9 rounded-lg text-sm font-medium transition"
+                          [class.bg-blue-600]="p === page()"
+                          [class.text-white]="p === page()"
+                          [class.hover:bg-gray-100]="p !== page()"
+                          [class.text-gray-700]="p !== page()"
+                          (click)="goToPage(p)">{{ p + 1 }}</button>
+                }
+              }
+
+              <button class="btn-outline py-2 px-4 text-sm disabled:opacity-40"
+                      [disabled]="page() === totalPages() - 1" (click)="goToPage(page() + 1)">Next →</button>
+            </div>
+          }
+        }
+      </main>
+
+    </div>
+  </div>
+</div>

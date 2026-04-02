@@ -1,0 +1,94 @@
+<nav [class.shadow-lg]="scrolled()"
+     class="fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-100 transition-shadow duration-300">
+  <div class="page-container">
+    <div class="flex items-center justify-between h-16">
+
+      <!-- Logo -->
+      <a routerLink="/home" class="flex items-center gap-2 text-decoration-none" (click)="closeMobile()">
+        <div class="w-9 h-9 rounded-xl flex items-center justify-center text-white font-bold text-sm"
+             style="background: linear-gradient(135deg,#2563eb,#0ea5e9)">JP</div>
+        <span class="text-xl font-bold" style="color:#111827">Job<span style="color:#2563eb">Portal</span></span>
+      </a>
+
+      <!-- Desktop Nav -->
+      <div class="hidden md:flex items-center gap-1">
+        <a routerLink="/home" routerLinkActive="text-blue-600 font-semibold"
+           class="btn-ghost text-sm">Home</a>
+        <a routerLink="/jobs" routerLinkActive="text-blue-600 font-semibold"
+           class="btn-ghost text-sm">Find Jobs</a>
+
+        @if (isLoggedIn()) {
+          <a [routerLink]="dashboardLink()" routerLinkActive="text-blue-600 font-semibold"
+             class="btn-ghost text-sm">
+            @if (userRole() === 'RECRUITER') { My Jobs }
+            @else if (userRole() === 'ADMIN') { Admin Panel }
+            @else { My Applications }
+          </a>
+          @if (userRole() === 'RECRUITER') {
+            <a routerLink="/recruiter/post-job" class="btn-ghost text-sm">Post a Job</a>
+          }
+        }
+      </div>
+
+      <!-- Desktop Auth -->
+      <div class="hidden md:flex items-center gap-3">
+        @if (!isLoggedIn()) {
+          <button class="btn-ghost text-sm" (click)="goToLogin()">Login</button>
+          <button class="btn-primary text-sm" (click)="goToRegister()">Get Started</button>
+        } @else {
+          <div class="flex items-center gap-3">
+            <div class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-blue-50">
+              <div class="w-7 h-7 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold">
+                {{ (userName() || 'U').charAt(0).toUpperCase() }}
+              </div>
+              <span class="text-sm font-medium text-gray-700">{{ userName() }}</span>
+              <span class="badge badge-blue text-xs">{{ userRole() | titlecase }}</span>
+            </div>
+            <button class="btn-outline text-sm text-red-600 border-red-200 hover:bg-red-50" (click)="logout()">
+              Logout
+            </button>
+          </div>
+        }
+      </div>
+
+      <!-- Mobile Hamburger -->
+      <button class="md:hidden p-2 rounded-lg text-gray-600 hover:bg-gray-100 transition"
+              (click)="toggleMobile()" aria-label="Toggle menu">
+        @if (!mobileOpen()) {
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+          </svg>
+        } @else {
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        }
+      </button>
+    </div>
+
+    <!-- Mobile Menu -->
+    @if (mobileOpen()) {
+      <div class="md:hidden border-t border-gray-100 py-3 animate-fade-in">
+        <div class="flex flex-col gap-1">
+          <a routerLink="/home"  class="btn-ghost justify-start" (click)="closeMobile()">Home</a>
+          <a routerLink="/jobs"  class="btn-ghost justify-start" (click)="closeMobile()">Find Jobs</a>
+          @if (isLoggedIn()) {
+            <a [routerLink]="dashboardLink()" class="btn-ghost justify-start" (click)="closeMobile()">Dashboard</a>
+            @if (userRole() === 'RECRUITER') {
+              <a routerLink="/recruiter/post-job" class="btn-ghost justify-start" (click)="closeMobile()">Post a Job</a>
+            }
+            <hr class="my-1 border-gray-100"/>
+            <button class="btn-ghost justify-start text-red-500" (click)="logout()">Logout</button>
+          } @else {
+            <hr class="my-1 border-gray-100"/>
+            <button class="btn-ghost justify-start" (click)="goToLogin(); closeMobile()">Login</button>
+            <button class="btn-primary justify-start mx-2" (click)="goToRegister(); closeMobile()">Get Started</button>
+          }
+        </div>
+      </div>
+    }
+  </div>
+</nav>
+
+<!-- Spacer so content isn't hidden under fixed navbar -->
+<div class="h-16"></div>

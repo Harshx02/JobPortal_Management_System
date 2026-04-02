@@ -1,0 +1,105 @@
+<app-navbar />
+
+<div class="bg-gray-50 min-h-screen py-10 px-4">
+  <div class="page-container max-w-4xl">
+
+    <div class="mb-8">
+      <h1 class="text-3xl font-bold text-gray-900">My Applications</h1>
+      <p class="text-gray-500 mt-1">Track the status of your job applications</p>
+    </div>
+
+    <!-- Loading -->
+    @if (loading()) {
+      <div class="space-y-4">
+        @for (i of [1,2,3,4]; track i) {
+          <div class="card p-6 flex gap-4">
+            <div class="skeleton w-12 h-12 rounded-xl flex-shrink-0"></div>
+            <div class="flex-1">
+              <div class="skeleton h-4 w-1/2 mb-2"></div>
+              <div class="skeleton h-3 w-1/3 mb-4"></div>
+              <div class="skeleton h-6 w-24 rounded-full"></div>
+            </div>
+          </div>
+        }
+      </div>
+    }
+
+    <!-- Error -->
+    @else if (error()) {
+      <div class="card p-12 text-center text-gray-400">
+        <div class="text-5xl mb-3">⚠️</div>
+        <p>{{ error() }}</p>
+      </div>
+    }
+
+    <!-- Empty -->
+    @else if (applications().length === 0) {
+      <div class="card p-16 text-center text-gray-400">
+        <div class="text-6xl mb-4">📋</div>
+        <h3 class="text-xl font-semibold text-gray-600 mb-2">No Applications Yet</h3>
+        <p class="text-sm mb-6">Start applying to your dream jobs today!</p>
+        <a routerLink="/jobs" class="btn-primary">Browse Jobs</a>
+      </div>
+    }
+
+    <!-- List -->
+    @else {
+      <!-- Summary bar -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        @for (stat of [
+          {label:'Total',    color:'bg-blue-50 text-blue-700',  key:'ALL'},
+          {label:'Pending',  color:'bg-yellow-50 text-yellow-700', key:'PENDING'},
+          {label:'Accepted', color:'bg-green-50 text-green-700', key:'ACCEPTED'},
+          {label:'Rejected', color:'bg-red-50 text-red-700',    key:'REJECTED'}
+        ]; track stat.label) {
+          <div class="card p-4 text-center" [ngClass]="stat.color">
+            <div class="text-2xl font-bold">
+              {{ stat.key === 'ALL'
+                  ? applications().length
+                  : getCount(stat.key) }}
+            </div>
+            <div class="text-xs font-semibold mt-1">{{ stat.label }}</div>
+          </div>
+        }
+      </div>
+
+      <div class="space-y-4">
+        @for (app of applications(); track app.id) {
+          <div class="card p-6 flex flex-col sm:flex-row sm:items-center gap-4 animate-fade-in">
+            <!-- Icon -->
+            <div class="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center text-2xl flex-shrink-0">
+              {{ statusIcon(app.status) }}
+            </div>
+
+            <!-- Info -->
+            <div class="flex-1 min-w-0">
+              <div class="flex items-start justify-between gap-3">
+                <div>
+                  <h3 class="font-semibold text-gray-900">Job #{{ app.jobId }}</h3>
+                  <p class="text-sm text-gray-500 mt-0.5">
+                    Applied {{ app.appliedAt | date:'mediumDate' }}
+                  </p>
+                </div>
+                <span class="badge flex-shrink-0" [ngClass]="statusColor(app.status)">
+                  {{ app.status | titlecase }}
+                </span>
+              </div>
+              @if (app.resumeUrl) {
+                <a [href]="app.resumeUrl" target="_blank"
+                   class="text-xs text-blue-600 hover:underline mt-2 inline-flex items-center gap-1">
+                  📎 View Resume
+                </a>
+              }
+            </div>
+
+            <!-- Action -->
+            <button class="btn-outline text-sm py-2 px-4 flex-shrink-0"
+                    (click)="viewJob(app.jobId)">
+              View Job
+            </button>
+          </div>
+        }
+      </div>
+    }
+  </div>
+</div>

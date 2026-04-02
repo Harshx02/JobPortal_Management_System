@@ -1,0 +1,183 @@
+<app-navbar />
+
+<!-- ═══════════════════════════════════  HERO  ═══════════════════════════════════ -->
+<section class="hero-gradient text-white py-24 px-4 relative overflow-hidden">
+  <!-- Background circles -->
+  <div class="absolute top-0 right-0 w-96 h-96 rounded-full opacity-10"
+       style="background:radial-gradient(circle,#fff,transparent);transform:translate(30%,-30%)"></div>
+  <div class="absolute bottom-0 left-0 w-64 h-64 rounded-full opacity-10"
+       style="background:radial-gradient(circle,#fff,transparent);transform:translate(-30%,30%)"></div>
+
+  <div class="page-container relative z-10 text-center">
+    <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/20 text-sm font-medium mb-6 animate-fade-in">
+      <span class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
+      1,200+ new jobs posted this week
+    </div>
+
+    <h1 class="text-5xl md:text-6xl font-bold leading-tight mb-6 animate-fade-in-up"
+        style="font-family:'Plus Jakarta Sans',sans-serif">
+      Find Your<br/>
+      <span class="text-yellow-300">Dream Job</span> Today
+    </h1>
+    <p class="text-xl text-blue-100 max-w-2xl mx-auto mb-10 animate-fade-in-up" style="animation-delay:.1s">
+      Connect with top companies and unlock career opportunities tailored just for you.
+    </p>
+
+    <!-- Search Bar -->
+    <div class="bg-white rounded-2xl p-2 flex flex-col md:flex-row gap-2 max-w-2xl mx-auto shadow-2xl animate-fade-in-up"
+         style="animation-delay:.2s">
+      <div class="flex items-center gap-2 flex-1 px-3">
+        <svg class="w-5 h-5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+        </svg>
+        <input [(ngModel)]="keyword" type="text" placeholder="Job title, skills, or company"
+               class="flex-1 py-2 text-gray-800 outline-none text-sm bg-transparent"
+               (keydown.enter)="search()" />
+      </div>
+      <div class="h-px md:h-auto md:w-px bg-gray-200 mx-2"></div>
+      <div class="flex items-center gap-2 flex-1 px-3">
+        <svg class="w-5 h-5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+        </svg>
+        <input [(ngModel)]="location" type="text" placeholder="City or remote"
+               class="flex-1 py-2 text-gray-800 outline-none text-sm bg-transparent"
+               (keydown.enter)="search()" />
+      </div>
+      <button class="btn-primary py-3 px-6 rounded-xl text-base" (click)="search()">
+        Search Jobs
+      </button>
+    </div>
+
+    <!-- Quick Tags -->
+    <div class="flex flex-wrap justify-center gap-2 mt-6 animate-fade-in-up" style="animation-delay:.3s">
+      <span class="text-blue-200 text-sm">Popular:</span>
+      @for (tag of ['React', 'Java', 'Python', 'Remote', 'Full-Stack', 'Data Science']; track tag) {
+        <button (click)="keyword=tag; search()"
+                class="px-3 py-1 rounded-full bg-white/20 text-white text-sm hover:bg-white/30 transition">
+          {{ tag }}
+        </button>
+      }
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════  STATS  ═══════════════════════════════════ -->
+<section class="py-12 bg-white border-b border-gray-100">
+  <div class="page-container">
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+      @for (stat of stats; track stat.label) {
+        <div class="text-center p-4">
+          <div class="text-3xl mb-2">{{ stat.icon }}</div>
+          <div class="text-3xl font-bold text-blue-600">{{ stat.value }}</div>
+          <div class="text-sm text-gray-500 mt-1">{{ stat.label }}</div>
+        </div>
+      }
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════  FEATURED JOBS  ═══════════════════════════════════ -->
+<section class="py-16 px-4 bg-gray-50">
+  <div class="page-container">
+    <div class="flex items-end justify-between mb-10">
+      <div>
+        <h2 class="section-title">Featured Jobs</h2>
+        <p class="section-sub">Handpicked opportunities from top companies</p>
+      </div>
+      <a routerLink="/jobs" class="btn-outline text-sm hidden md:inline-flex">
+        View All Jobs →
+      </a>
+    </div>
+
+    @if (loading()) {
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        @for (i of [1,2,3,4,5,6]; track i) {
+          <div class="card p-6 h-56">
+            <div class="skeleton h-4 w-3/4 mb-3"></div>
+            <div class="skeleton h-3 w-1/2 mb-5"></div>
+            <div class="skeleton h-3 w-full mb-2"></div>
+            <div class="skeleton h-3 w-4/5 mb-2"></div>
+            <div class="skeleton h-3 w-2/3 mt-auto"></div>
+          </div>
+        }
+      </div>
+    } @else if (error()) {
+      <div class="text-center py-16 text-gray-400">
+        <div class="text-4xl mb-3">⚠️</div>
+        <p>{{ error() }}</p>
+      </div>
+    } @else if (jobs().length === 0) {
+      <div class="text-center py-16 text-gray-400">
+        <div class="text-4xl mb-3">📭</div>
+        <p>No jobs available right now. Check back soon!</p>
+      </div>
+    } @else {
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        @for (job of jobs(); track job.id) {
+          <app-job-card [job]="job" />
+        }
+      </div>
+      <div class="text-center mt-10">
+        <a routerLink="/jobs" class="btn-primary text-base py-3 px-8">
+          Explore All Jobs
+        </a>
+      </div>
+    }
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════  HOW IT WORKS  ═══════════════════════════════════ -->
+<section class="py-20 bg-white px-4">
+  <div class="page-container">
+    <div class="text-center mb-14">
+      <h2 class="section-title">How JobPortal Works</h2>
+      <p class="section-sub">Get hired in 3 simple steps</p>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+      @for (step of [
+        {n:'01',title:'Create Profile',desc:'Register as a job seeker and set up your professional profile in minutes.',icon:'📝'},
+        {n:'02',title:'Search & Apply',desc:'Browse thousands of jobs, filter by location & experience, and apply instantly.',icon:'🔍'},
+        {n:'03',title:'Get Hired',desc:'Receive acceptance notifications and start your new career journey.',icon:'🎉'}
+      ]; track step.n) {
+        <div class="text-center p-8 rounded-2xl border border-gray-100 hover:border-blue-200 hover:shadow-lg transition-all">
+          <div class="text-5xl mb-4">{{ step.icon }}</div>
+          <div class="text-xs font-bold text-blue-500 tracking-widest mb-2">STEP {{ step.n }}</div>
+          <h3 class="text-xl font-bold text-gray-900 mb-3">{{ step.title }}</h3>
+          <p class="text-gray-600 leading-relaxed">{{ step.desc }}</p>
+        </div>
+      }
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════  CTA  ═══════════════════════════════════ -->
+<section class="hero-gradient py-16 px-4 text-white text-center">
+  <div class="page-container">
+    <h2 class="text-3xl md:text-4xl font-bold mb-4" style="font-family:'Plus Jakarta Sans',sans-serif">
+      Ready to Start Your Journey?
+    </h2>
+    <p class="text-blue-100 mb-8 text-lg max-w-xl mx-auto">
+      Join 50,000+ professionals who found their dream jobs through JobPortal.
+    </p>
+    <div class="flex flex-col sm:flex-row gap-4 justify-center">
+      <a routerLink="/auth/register" class="btn-primary bg-white text-blue-600 hover:bg-blue-50 py-3 px-8 text-base">
+        Get Started Free
+      </a>
+      <a routerLink="/jobs" class="btn-outline border-white text-white hover:bg-white/10 py-3 px-8 text-base">
+        Browse Jobs
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ── Footer ── -->
+<footer class="bg-gray-900 text-gray-400 py-10 px-4 text-center text-sm">
+  <div class="flex items-center justify-center gap-2 mb-3">
+    <div class="w-7 h-7 rounded-lg flex items-center justify-center text-white text-xs font-bold"
+         style="background:linear-gradient(135deg,#2563eb,#0ea5e9)">JP</div>
+    <span class="text-white font-semibold">JobPortal</span>
+  </div>
+  <p>© {{ 2026 }} JobPortal. Built with Angular &amp; Spring Boot microservices.</p>
+</footer>

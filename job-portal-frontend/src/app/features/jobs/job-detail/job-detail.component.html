@@ -1,0 +1,152 @@
+<app-navbar />
+
+<div class="bg-gray-50 min-h-screen py-8 px-4">
+  <div class="page-container max-w-4xl">
+
+    <button class="btn-ghost mb-6 text-sm" (click)="goBack()">
+      ← Back to Jobs
+    </button>
+
+    <!-- Loading -->
+    @if (loading()) {
+      <div class="card p-8">
+        <div class="skeleton h-7 w-2/3 mb-3"></div>
+        <div class="skeleton h-4 w-1/3 mb-6"></div>
+        <div class="flex gap-4 mb-6">
+          <div class="skeleton h-6 w-24 rounded-full"></div>
+          <div class="skeleton h-6 w-24 rounded-full"></div>
+          <div class="skeleton h-6 w-24 rounded-full"></div>
+        </div>
+        <div class="skeleton h-3 w-full mb-2"></div>
+        <div class="skeleton h-3 w-full mb-2"></div>
+        <div class="skeleton h-3 w-4/5 mb-2"></div>
+        <div class="skeleton h-3 w-3/5"></div>
+      </div>
+    }
+
+    <!-- Error -->
+    @else if (error()) {
+      <div class="card p-12 text-center text-gray-400">
+        <div class="text-5xl mb-4">😕</div>
+        <p class="text-xl font-semibold text-gray-600">{{ error() }}</p>
+        <button class="btn-primary mt-6" (click)="goBack()">Browse Other Jobs</button>
+      </div>
+    }
+
+    <!-- Content -->
+    @else if (job(); as j) {
+      <!-- Header Card -->
+      <div class="card p-8 mb-6 animate-fade-in-up">
+        <div class="flex flex-col md:flex-row md:items-start gap-6">
+          <!-- Company Avatar -->
+          <div class="w-20 h-20 rounded-2xl flex items-center justify-center text-white text-3xl font-bold flex-shrink-0"
+               style="background:linear-gradient(135deg,#2563eb,#0ea5e9)">
+            {{ j.companyName.charAt(0) }}
+          </div>
+
+          <div class="flex-1">
+            <h1 class="text-2xl md:text-3xl font-bold text-gray-900">{{ j.title }}</h1>
+            <p class="text-blue-600 font-semibold text-lg mt-1">{{ j.companyName }}</p>
+
+            <!-- Badges -->
+            <div class="flex flex-wrap gap-2 mt-4">
+              <span class="badge badge-blue">
+                📍 {{ j.location }}
+              </span>
+              <span class="badge badge-green">
+                💰 {{ formatSalary(j.salary) }}
+              </span>
+              <span class="badge badge-purple">
+                🏛️ {{ j.experience }}+ Years Experience
+              </span>
+              <span class="badge badge-gray">
+                Full-time
+              </span>
+            </div>
+
+            <p class="text-xs text-gray-400 mt-3">
+              Posted {{ j.createdAt | date:'mediumDate' }}
+            </p>
+          </div>
+
+          <!-- Apply Button -->
+          <div class="flex-shrink-0">
+            @if (canApply()) {
+              <button class="btn-primary text-base py-3 px-8" (click)="apply()">
+                Apply Now →
+              </button>
+            } @else if (!isLoggedIn()) {
+              <button class="btn-primary text-base py-3 px-8" (click)="apply()">
+                Login to Apply
+              </button>
+            } @else {
+              <span class="badge badge-gray text-sm px-4 py-2">
+                Only Job Seekers can apply
+              </span>
+            }
+          </div>
+        </div>
+      </div>
+
+      <!-- Description Card -->
+      <div class="card p-8 mb-6 animate-fade-in-up" style="animation-delay:.1s">
+        <h2 class="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+          <span class="w-1 h-6 rounded-full bg-blue-600 inline-block"></span>
+          Job Description
+        </h2>
+        <div class="prose max-w-none text-gray-700 leading-relaxed whitespace-pre-line">
+          {{ j.description }}
+        </div>
+      </div>
+
+      <!-- Details Card -->
+      <div class="card p-8 mb-6 animate-fade-in-up" style="animation-delay:.15s">
+        <h2 class="text-xl font-bold text-gray-900 mb-5 flex items-center gap-2">
+          <span class="w-1 h-6 rounded-full bg-blue-600 inline-block"></span>
+          Job Details
+        </h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+          <div class="flex items-center gap-3 p-4 bg-blue-50 rounded-xl">
+            <span class="text-2xl">📍</span>
+            <div>
+              <p class="text-xs text-gray-500">Location</p>
+              <p class="font-semibold text-gray-800">{{ j.location }}</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-3 p-4 bg-green-50 rounded-xl">
+            <span class="text-2xl">💰</span>
+            <div>
+              <p class="text-xs text-gray-500">Salary</p>
+              <p class="font-semibold text-gray-800">{{ formatSalary(j.salary) }}</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-3 p-4 bg-purple-50 rounded-xl">
+            <span class="text-2xl">📅</span>
+            <div>
+              <p class="text-xs text-gray-500">Experience Required</p>
+              <p class="font-semibold text-gray-800">{{ j.experience }}+ Years</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-3 p-4 bg-orange-50 rounded-xl">
+            <span class="text-2xl">🏢</span>
+            <div>
+              <p class="text-xs text-gray-500">Company</p>
+              <p class="font-semibold text-gray-800">{{ j.companyName }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Apply CTA -->
+      @if (canApply()) {
+        <div class="card p-8 text-center hero-gradient text-white animate-fade-in-up" style="animation-delay:.2s">
+          <h3 class="text-xl font-bold mb-2">Ready to Apply?</h3>
+          <p class="text-blue-100 mb-5">Upload your resume and submit your application in minutes.</p>
+          <button class="btn-primary bg-white text-blue-600 hover:bg-blue-50 py-3 px-10 text-base" (click)="apply()">
+            Apply for this Job →
+          </button>
+        </div>
+      }
+    }
+  </div>
+</div>

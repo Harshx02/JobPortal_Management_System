@@ -1,0 +1,116 @@
+<app-navbar />
+
+<div class="bg-gray-50 min-h-screen py-10 px-4">
+  <div class="page-container max-w-2xl">
+
+    <div class="mb-8">
+      <h1 class="text-3xl font-bold text-gray-900">
+        {{ isEdit() ? '✏️ Edit Job' : '📢 Post a Job' }}
+      </h1>
+      <p class="text-gray-500 mt-1">
+        {{ isEdit() ? 'Update job details' : 'Reach thousands of qualified candidates' }}
+      </p>
+    </div>
+
+    <div class="card p-8 animate-fade-in-up">
+      @if (error()) {
+        <div class="mb-5 p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm">
+          ❌ {{ error() }}
+        </div>
+      }
+      @if (success()) {
+        <div class="mb-5 p-4 rounded-xl bg-green-50 border border-green-200 text-green-700 text-sm">
+          ✅ {{ success() }}
+        </div>
+      }
+
+      <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+        <!-- Title -->
+        <div class="mb-5">
+          <label class="form-label" for="job-title">Job Title *</label>
+          <input id="job-title" type="text" formControlName="title" class="form-input"
+                 placeholder="e.g. Senior React Developer"
+                 [class.border-red-400]="f['title'].invalid && f['title'].touched" />
+          @if (f['title'].errors?.['required'] && f['title'].touched) {
+            <p class="text-red-500 text-xs mt-1">Job title is required.</p>
+          }
+        </div>
+
+        <!-- Company -->
+        <div class="mb-5">
+          <label class="form-label" for="company-name">Company Name *</label>
+          <input id="company-name" type="text" formControlName="companyName" class="form-input"
+                 placeholder="e.g. Acme Corp"
+                 [class.border-red-400]="f['companyName'].invalid && f['companyName'].touched" />
+          @if (f['companyName'].errors?.['required'] && f['companyName'].touched) {
+            <p class="text-red-500 text-xs mt-1">Company name is required.</p>
+          }
+        </div>
+
+        <!-- Location -->
+        <div class="mb-5">
+          <label class="form-label" for="job-location">Location *</label>
+          <input id="job-location" type="text" formControlName="location" class="form-input"
+                 placeholder="e.g. Bangalore, Remote"
+                 [class.border-red-400]="f['location'].invalid && f['location'].touched" />
+          @if (f['location'].errors?.['required'] && f['location'].touched) {
+            <p class="text-red-500 text-xs mt-1">Location is required.</p>
+          }
+        </div>
+
+        <!-- Salary + Experience -->
+        <div class="grid grid-cols-2 gap-4 mb-5">
+          <div>
+            <label class="form-label" for="job-salary">Salary (₹/year) *</label>
+            <input id="job-salary" type="number" formControlName="salary" class="form-input"
+                   placeholder="e.g. 800000" min="0"
+                   [class.border-red-400]="f['salary'].invalid && f['salary'].touched" />
+            @if (f['salary'].errors?.['required'] && f['salary'].touched) {
+              <p class="text-red-500 text-xs mt-1">Salary is required.</p>
+            }
+          </div>
+          <div>
+            <label class="form-label" for="job-experience">Experience (years) *</label>
+            <input id="job-experience" type="number" formControlName="experience" class="form-input"
+                   placeholder="e.g. 3" min="0"
+                   [class.border-red-400]="f['experience'].invalid && f['experience'].touched" />
+            @if (f['experience'].errors?.['required'] && f['experience'].touched) {
+              <p class="text-red-500 text-xs mt-1">Experience is required.</p>
+            }
+          </div>
+        </div>
+
+        <!-- Description -->
+        <div class="mb-8">
+          <label class="form-label" for="job-desc">Job Description *</label>
+          <textarea id="job-desc" formControlName="description" rows="8" class="form-input resize-y"
+                    placeholder="Describe the role, responsibilities, required skills, and benefits…"
+                    [class.border-red-400]="f['description'].invalid && f['description'].touched"></textarea>
+          @if (f['description'].errors?.['required'] && f['description'].touched) {
+            <p class="text-red-500 text-xs mt-1">Description is required.</p>
+          }
+          @if (f['description'].errors?.['minlength'] && f['description'].touched) {
+            <p class="text-red-500 text-xs mt-1">Description must be at least 20 characters.</p>
+          }
+          <p class="text-xs text-gray-400 mt-1 text-right">
+            {{ form.get('description')?.value?.length || 0 }} chars
+          </p>
+        </div>
+
+        <div class="flex gap-3">
+          <button type="button" class="btn-outline flex-1 justify-center"
+                  (click)="router.navigate(['/recruiter/dashboard'])">Cancel</button>
+          <button type="submit" class="btn-primary flex-1 justify-center"
+                  [disabled]="loading()">
+            @if (loading()) {
+              <div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              Saving…
+            } @else {
+              {{ isEdit() ? 'Update Job' : 'Post Job' }}
+            }
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
