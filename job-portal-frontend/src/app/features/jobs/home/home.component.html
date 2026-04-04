@@ -54,7 +54,7 @@
     <div class="flex flex-wrap justify-center gap-2 mt-6 animate-fade-in-up" style="animation-delay:.3s">
       <span class="text-blue-200 text-sm">Popular:</span>
       @for (tag of ['React', 'Java', 'Python', 'Remote', 'Full-Stack', 'Data Science']; track tag) {
-        <button (click)="keyword=tag; search()"
+        <button (click)="searchTag(tag)"
                 class="px-3 py-1 rounded-full bg-white/20 text-white text-sm hover:bg-white/30 transition">
           {{ tag }}
         </button>

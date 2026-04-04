@@ -34,6 +34,7 @@ export class JobSearchComponent implements OnInit {
   ) {
     this.filterForm = this.fb.group({
       title:        [''],
+      skill:        [''],
       location:     [''],
       companyName:  [''],
       minSalary:    [null],
@@ -44,9 +45,9 @@ export class JobSearchComponent implements OnInit {
   }
 
   ngOnInit() {
-    // Pre-fill from query params
     this.route.queryParams.subscribe(params => {
       if (params['keyword'])  this.filterForm.patchValue({ title: params['keyword'] });
+      if (params['skill'])    this.filterForm.patchValue({ skill: params['skill'] });
       if (params['location']) this.filterForm.patchValue({ location: params['location'] });
       this.doSearch();
     });
@@ -94,8 +95,10 @@ export class JobSearchComponent implements OnInit {
 
   private buildFilter(): JobFilterDto {
     const v = this.filterForm.value;
+
     return {
-      title:         v.title         || undefined,
+      title:         v.title || undefined,
+      skill:         v.skill || undefined,
       location:      v.location      || undefined,
       companyName:   v.companyName   || undefined,
       minSalary:     v.minSalary     || undefined,

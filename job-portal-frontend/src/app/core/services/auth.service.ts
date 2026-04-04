@@ -18,6 +18,7 @@ export class AuthService {
   readonly isLoggedIn = computed(() => !!this._token());
   readonly userRole   = computed(() => this._user()?.role ?? null);
   readonly userName   = computed(() => this._user()?.name ?? null);
+  readonly userId     = computed(() => this._user()?.userId ?? this.readUserId() ?? null);
 
   constructor(private http: HttpClient, private router: Router) {}
 
@@ -41,6 +42,7 @@ export class AuthService {
   logout(): void {
     localStorage.removeItem('jp_token');
     localStorage.removeItem('jp_user');
+    localStorage.removeItem('jp_userId');
     this._token.set(null);
     this._user.set(null);
     this.router.navigate(['/auth/login']);
@@ -54,6 +56,9 @@ export class AuthService {
   private storeSession(res: AuthResponse): void {
     localStorage.setItem('jp_token', res.token);
     localStorage.setItem('jp_user', JSON.stringify(res));
+    if (res.userId) {
+      localStorage.setItem('jp_userId', res.userId.toString());
+    }
     this._token.set(res.token);
     this._user.set(res);
   }
@@ -66,5 +71,10 @@ export class AuthService {
     const raw = localStorage.getItem('jp_user');
     if (!raw) return null;
     try { return JSON.parse(raw); } catch { return null; }
+  }
+
+  private readUserId(): number | null {
+    const raw = localStorage.getItem('jp_userId');
+    return raw ? Number(raw) : null;
   }
 }

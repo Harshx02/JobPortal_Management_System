@@ -5,6 +5,7 @@ import lombok.Data;
 @Data
 public class JobFilterDto {
     private String title;
+    private String skill;
     private String location;
     private String companyName;
     private Double minSalary;

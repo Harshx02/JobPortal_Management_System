@@ -44,6 +44,7 @@
               <span class="text-sm font-medium text-gray-700">{{ userName() }}</span>
               <span class="badge badge-blue text-xs">{{ userRole() | titlecase }}</span>
             </div>
+            <a routerLink="/profile" class="btn-ghost text-sm font-medium">My Profile</a>
             <button class="btn-outline text-sm text-red-600 border-red-200 hover:bg-red-50" (click)="logout()">
               Logout
             </button>
@@ -77,6 +78,7 @@
             @if (userRole() === 'RECRUITER') {
               <a routerLink="/recruiter/post-job" class="btn-ghost justify-start" (click)="closeMobile()">Post a Job</a>
             }
+            <a routerLink="/profile" class="btn-ghost justify-start" (click)="closeMobile()">My Profile</a>
             <hr class="my-1 border-gray-100"/>
             <button class="btn-ghost justify-start text-red-500" (click)="logout()">Logout</button>
           } @else {

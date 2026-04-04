@@ -45,6 +45,13 @@ export const routes: Routes = [
     canActivate: [authGuard, roleGuard(['JOB_SEEKER'])]
   },
 
+  // Protected – Profile
+  {
+    path: 'profile',
+    loadComponent: () => import('./features/profile/profile-page/profile-page.component').then(m => m.ProfilePageComponent),
+    canActivate: [authGuard]
+  },
+
   // Protected – Job Seeker Dashboard
   {
     path: 'my-applications',

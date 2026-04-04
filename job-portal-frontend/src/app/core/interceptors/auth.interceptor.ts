@@ -5,11 +5,18 @@ export const authInterceptor: HttpInterceptorFn = (
   next: HttpHandlerFn
 ) => {
   const token = localStorage.getItem('jp_token');
+  const userId = localStorage.getItem('jp_userId');
 
+  let headers = req.headers;
   if (token) {
-    const cloned = req.clone({
-      setHeaders: { Authorization: `Bearer ${token}` }
-    });
+    headers = headers.set('Authorization', `Bearer ${token}`);
+  }
+  if (userId) {
+    headers = headers.set('X-User-Id', userId);
+  }
+
+  if (token || userId) {
+    const cloned = req.clone({ headers });
     return next(cloned);
   }
 

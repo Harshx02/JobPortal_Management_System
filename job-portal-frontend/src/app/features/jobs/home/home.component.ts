@@ -1,5 +1,5 @@
 import { Component, OnInit, signal } from '@angular/core';
-import { Router } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { NavbarComponent } from '../../../shared/components/navbar/navbar.component';
@@ -10,7 +10,7 @@ import { JobResponseDto } from '../../../core/models/job.model';
 @Component({
   selector: 'app-home',
   standalone: true,
-  imports: [CommonModule, FormsModule, NavbarComponent, JobCardComponent],
+  imports: [CommonModule, FormsModule, RouterModule, NavbarComponent, JobCardComponent],
   templateUrl: './home.component.html'
 })
 export class HomeComponent implements OnInit {
@@ -43,5 +43,17 @@ export class HomeComponent implements OnInit {
         location: this.location || undefined
       }
     });
+  }
+
+  searchTag(tag: string) {
+    let queryParams: any = {};
+    if (['React', 'Java', 'Python', 'Data Science'].includes(tag)) {
+       queryParams.skill = tag;
+    } else if (tag === 'Remote') {
+       queryParams.location = tag;
+    } else {
+       queryParams.keyword = tag;
+    }
+    this.router.navigate(['/jobs'], { queryParams });
   }
 }

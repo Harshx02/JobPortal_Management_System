@@ -4,6 +4,7 @@ export interface AuthResponse {
   email: string;
   role: 'JOB_SEEKER' | 'RECRUITER' | 'ADMIN';
   message: string;
+  userId?: number;
 }
 
 export interface LoginRequest {
@@ -24,12 +25,19 @@ export interface UserResponse {
   email: string;
   role: 'JOB_SEEKER' | 'RECRUITER' | 'ADMIN';
   profileImageUrl?: string;
+  phone?: string;
+  bio?: string;
+  skills?: string;
+  location?: string;
   createdAt?: string;
 }
 
 export interface UpdateProfileRequest {
   name?: string;
   phone?: string;
+  bio?: string;
+  skills?: string;
+  location?: string;
 }
 
 export type UserRole = 'JOB_SEEKER' | 'RECRUITER' | 'ADMIN';

@@ -21,6 +21,7 @@ export interface JobRequestDto {
 
 export interface JobFilterDto {
   title?: string;
+  skill?: string;
   location?: string;
   companyName?: string;
   minSalary?: number;

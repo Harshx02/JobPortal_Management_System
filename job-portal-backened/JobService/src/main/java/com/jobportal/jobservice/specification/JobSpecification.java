@@ -18,6 +18,10 @@ public class JobSpecification {
                 predicates.add(cb.like(cb.lower(root.get("title")),
                         "%" + filter.getTitle().toLowerCase() + "%"));
             }
+            if (filter.getSkill() != null && !filter.getSkill().isEmpty()) {
+                predicates.add(cb.like(cb.lower(root.get("description")),
+                        "%" + filter.getSkill().toLowerCase() + "%"));
+            }
             if (filter.getLocation() != null && !filter.getLocation().isEmpty()) {
                 predicates.add(cb.like(cb.lower(root.get("location")),
                         "%" + filter.getLocation().toLowerCase() + "%"));
