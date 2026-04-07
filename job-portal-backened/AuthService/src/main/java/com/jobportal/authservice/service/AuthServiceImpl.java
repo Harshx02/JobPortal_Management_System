@@ -66,24 +66,26 @@ public class AuthServiceImpl implements AuthService {
     // REGISTER
     @Override
     public AuthResponse register(RegisterRequest request) {
+        String email = request.getEmail();
+        if (email != null) email = email.trim().toLowerCase();
 
         log.info("Register service called | email: {} | role: {}",
-                request.getEmail(), request.getRole());
+                email, request.getRole());
 
         if (request.getRole() == UserRole.ADMIN) {
-            log.warn("Attempt to register ADMIN user | email: {}", request.getEmail());
+            log.warn("Attempt to register ADMIN user | email: {}", email);
             throw new UnauthorizedException("Admin registration is not allowed!");
         }
 
-        if (userRepository.existsByEmail(request.getEmail())) {
-            log.warn("Duplicate email registration attempt | email: {}", request.getEmail());
+        if (userRepository.existsByEmail(email)) {
+            log.warn("Duplicate email registration attempt | email: {}", email);
             throw new DuplicateEmailException(
-                    "Email already registered: " + request.getEmail());
+                    "Email already registered: " + email);
         }
 
         User user = User.builder()
                 .name(request.getName())
-                .email(request.getEmail())
+                .email(email)
                 .password(passwordEncoder.encode(request.getPassword()))
                 .phone(request.getPhone())
                 .role(request.getRole())
@@ -114,18 +116,19 @@ public class AuthServiceImpl implements AuthService {
     // LOGIN
     @Override
     public AuthResponse login(LoginRequest request) {
+        final String email = (request.getEmail() != null) ? request.getEmail().trim().toLowerCase() : null;
 
-        log.info("Login service called | email: {}", request.getEmail());
+        log.info("Login service called | email: {}", email);
 
-        User user = userRepository.findByEmail(request.getEmail())
+        User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> {
-                    log.error("User not found during login | email: {}", request.getEmail());
+                    log.error("User not found during login | email: {}", email);
                     return new UserNotFoundException(
-                            "User not found with email: " + request.getEmail());
+                            "User not found with email: " + email);
                 });
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            log.warn("Invalid login attempt | email: {}", request.getEmail());
+            log.warn("Invalid login attempt | email: {}", email);
             throw new InvalidCredentialsException("Invalid email or password!");
         }
 
@@ -295,17 +298,18 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public void resetPassword(String email, String newPassword) {
-        log.info("Resetting password | email: {}", email);
+        final String normalizedEmail = (email != null) ? email.trim().toLowerCase() : null;
+        log.info("Resetting password | email: {}", normalizedEmail);
         
-        OtpDetails details = (OtpDetails) redisTemplate.opsForValue().get(OTP_KEY_PREFIX + email);
+        OtpDetails details = (OtpDetails) redisTemplate.opsForValue().get(OTP_KEY_PREFIX + normalizedEmail);
         
         if (details == null || !details.isVerified()) {
-            log.error("Password reset attempt without OTP verification | email: {}", email);
+            log.error("Password reset attempt without OTP verification | email: {}", normalizedEmail);
             throw new UnauthorizedException("OTP not verified for this email!");
         }
 
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new UserNotFoundException("User not found with email: " + email));
+        User user = userRepository.findByEmail(normalizedEmail)
+                .orElseThrow(() -> new UserNotFoundException("User not found with email: " + normalizedEmail));
 
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);

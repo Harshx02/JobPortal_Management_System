@@ -1,4 +1,4 @@
-version: "3.8"
+# job-portal-backened/docker-compose.yml
 
 services:
 
@@ -53,10 +53,11 @@ services:
     networks:
       - jobportal-network
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$${MYSQL_ROOT_PASSWORD}"]
       interval: 10s
-      timeout: 5s
-      retries: 5
+      timeout: 10s
+      retries: 10
+      start_period: 60s
 
   # ===============================
   # RABBITMQ
@@ -77,8 +78,9 @@ services:
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "check_running"]
       interval: 10s
-      timeout: 5s
-      retries: 5
+      timeout: 10s
+      retries: 10
+      start_period: 60s
 
   # ===============================
   # REDIS
@@ -96,8 +98,9 @@ services:
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
-      timeout: 5s
-      retries: 5
+      timeout: 10s
+      retries: 10
+      start_period: 30s
 
   # ===============================
   # AUTH SERVICE
@@ -458,7 +461,7 @@ configs:
             {
               "name": "service",
               "type": "query",
-              "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+              "datasource": { "type": "prometheus", "uid": "$${DS_PROMETHEUS}" },
               "query": "label_values(jvm_memory_used_bytes, job)",
               "refresh": 2,
               "includeAll": true,
@@ -473,10 +476,10 @@ configs:
             "title": "JVM Heap Used",
             "type": "timeseries",
             "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
-            "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+            "datasource": { "type": "prometheus", "uid": "$${DS_PROMETHEUS}" },
             "targets": [
               {
-                "expr": "jvm_memory_used_bytes{job=~\"$service\", area=\"heap\"}",
+                "expr": "jvm_memory_used_bytes{job=~\"$$service\", area=\"heap\"}",
                 "legendFormat": "{{job}} - {{id}}"
               }
             ],
@@ -489,10 +492,10 @@ configs:
             "title": "JVM Non-Heap Used",
             "type": "timeseries",
             "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
-            "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+            "datasource": { "type": "prometheus", "uid": "$${DS_PROMETHEUS}" },
             "targets": [
               {
-                "expr": "jvm_memory_used_bytes{job=~\"$service\", area=\"nonheap\"}",
+                "expr": "jvm_memory_used_bytes{job=~\"$$service\", area=\"nonheap\"}",
                 "legendFormat": "{{job}} - {{id}}"
               }
             ],
@@ -505,14 +508,14 @@ configs:
             "title": "JVM Threads",
             "type": "timeseries",
             "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
-            "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+            "datasource": { "type": "prometheus", "uid": "$${DS_PROMETHEUS}" },
             "targets": [
               {
-                "expr": "jvm_threads_live_threads{job=~\"$service\"}",
+                "expr": "jvm_threads_live_threads{job=~\"$$service\"}",
                 "legendFormat": "{{job}} - live"
               },
               {
-                "expr": "jvm_threads_daemon_threads{job=~\"$service\"}",
+                "expr": "jvm_threads_daemon_threads{job=~\"$$service\"}",
                 "legendFormat": "{{job}} - daemon"
               }
             ],

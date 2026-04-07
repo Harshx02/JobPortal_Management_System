@@ -165,7 +165,7 @@ public class EmailService {
             log.info("OTP email sent successfully | email: {}", email);
             
         } catch (Exception e) {
-            log.error("Failed to send OTP email | email: {}", email, e);
+            log.error("CRITICAL: Failed to send OTP email to {} | Reason: {}", email, e.getMessage(), e);
         }
     }
 

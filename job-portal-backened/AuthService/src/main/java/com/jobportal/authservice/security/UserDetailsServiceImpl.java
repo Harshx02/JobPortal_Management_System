@@ -22,11 +22,13 @@ public class UserDetailsServiceImpl implements UserDetailsService {
     public UserDetails loadUserByUsername(String email)
             throws UsernameNotFoundException {
 
+        final String normalizedEmail = (email != null) ? email.trim().toLowerCase() : null;
+
         // Find user by email from database
-        User user = userRepository.findByEmail(email)
+        User user = userRepository.findByEmail(normalizedEmail)
                 .orElseThrow(() ->
                         new UserNotFoundException(
-                                "User not found with email: " + email));
+                                "User not found with email: " + normalizedEmail));
 
         // Convert role to Spring Security authority
         // e.g. JOB_SEEKER → ROLE_JOB_SEEKER
