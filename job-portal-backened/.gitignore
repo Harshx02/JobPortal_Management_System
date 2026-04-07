@@ -5,3 +5,4 @@ target/
 *.log
 *.zip
 .sonarlint/
+.env
