@@ -21,6 +21,10 @@ import org.springframework.web.multipart.MultipartFile;
 import com.jobportal.authservice.dto.request.LoginRequest;
 import com.jobportal.authservice.dto.request.RegisterRequest;
 import com.jobportal.authservice.dto.request.UpdateProfileRequest;
+import com.jobportal.authservice.dto.request.ForgotPasswordRequest;
+import com.jobportal.authservice.dto.request.VerifyOtpRequest;
+import com.jobportal.authservice.dto.request.ResetPasswordRequest;
+
 import com.jobportal.authservice.dto.response.AuthResponse;
 import com.jobportal.authservice.dto.response.UserResponse;
 import com.jobportal.authservice.service.AuthService;
@@ -150,5 +154,29 @@ public class AuthController {
                 authService.updateProfile(userId, request);
 
         return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<String> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        log.info("Forgot Password API called | email: {}", request.getEmail());
+        authService.forgotPassword(request.getEmail());
+        return ResponseEntity.ok("OTP sent to your email!");
+    }
+
+    @PostMapping("/verify-otp")
+    public ResponseEntity<String> verifyOtp(@Valid @RequestBody VerifyOtpRequest request) {
+        log.info("Verify OTP API called | email: {}", request.getEmail());
+        boolean isValid = authService.verifyOtp(request.getEmail(), request.getOtp());
+        if (isValid) {
+            return ResponseEntity.ok("OTP Verified!");
+        }
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid or expired OTP!");
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<String> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        log.info("Reset Password API called | email: {}", request.getEmail());
+        authService.resetPassword(request.getEmail(), request.getNewPassword());
+        return ResponseEntity.ok("Password reset successful!");
     }
 }

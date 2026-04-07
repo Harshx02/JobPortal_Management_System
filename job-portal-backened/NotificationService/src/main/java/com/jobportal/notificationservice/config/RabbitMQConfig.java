@@ -22,12 +22,14 @@ public class RabbitMQConfig {
     public static final String JOB_APPLIED_QUEUE = "job.applied";
     public static final String APPLICATION_STATUS_QUEUE = "application.status";
     public static final String APPLICATION_DELETED_QUEUE = "application.deleted";
+    public static final String FORGOT_PASSWORD_QUEUE = "forgot.password.queue";
 
     // Routing Keys
     public static final String RK_JOB_POSTED = "job.job.posted";
     public static final String RK_JOB_APPLIED = "app.job.applied";
     public static final String RK_APPLICATION_STATUS = "app.application.status.changed";
     public static final String RK_APPLICATION_DELETED = "app.application.deleted";
+    public static final String RK_FORGOT_PASSWORD = "auth.forgot.password";
 
     @Bean
     public TopicExchange exchange() {
@@ -54,6 +56,11 @@ public class RabbitMQConfig {
         return new Queue(APPLICATION_DELETED_QUEUE, true);
     }
 
+    @Bean
+    public Queue forgotPasswordQueue() {
+        return new Queue(FORGOT_PASSWORD_QUEUE, true);
+    }
+
     // Bindings
     @Bean
     public Binding bindJobPosted(Queue jobPostedQueue, TopicExchange exchange) {
@@ -73,6 +80,11 @@ public class RabbitMQConfig {
     @Bean
     public Binding bindApplicationDeleted(Queue applicationDeletedQueue, TopicExchange exchange) {
         return BindingBuilder.bind(applicationDeletedQueue).to(exchange).with(RK_APPLICATION_DELETED);
+    }
+
+    @Bean
+    public Binding bindForgotPassword(Queue forgotPasswordQueue, TopicExchange exchange) {
+        return BindingBuilder.bind(forgotPasswordQueue).to(exchange).with(RK_FORGOT_PASSWORD);
     }
 
     @Bean

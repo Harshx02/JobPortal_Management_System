@@ -23,6 +23,14 @@ import com.jobportal.authservice.exception.UnauthorizedException;
 import com.jobportal.authservice.exception.UserNotFoundException;
 import com.jobportal.authservice.repository.UserRepository;
 import com.jobportal.authservice.security.JwtUtil;
+import com.jobportal.authservice.dto.OtpDetails;
+import com.jobportal.authservice.event.ForgotPasswordEvent;
+import com.jobportal.authservice.config.RabbitMQConfig;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import java.util.Random;
+import java.util.concurrent.TimeUnit;
+
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -44,6 +52,16 @@ public class AuthServiceImpl implements AuthService {
 
     @Autowired
     private ModelMapper modelMapper;
+
+    @Autowired
+    private RedisTemplate<String, Object> redisTemplate;
+
+    @Autowired
+    private RabbitTemplate rabbitTemplate;
+
+    private static final String OTP_KEY_PREFIX = "otp:";
+    private static final long OTP_EXPIRY_MINUTES = 5;
+
 
     // REGISTER
     @Override
@@ -228,6 +246,74 @@ public class AuthServiceImpl implements AuthService {
         userRepository.delete(user);
 
         log.info("User deleted successfully | userId: {}", id);
+    }
+
+    @Override
+    public void forgotPassword(String email) {
+        if (email != null) email = email.trim().toLowerCase();
+        log.info("Requesting OTP for forgot password | email: {}", email);
+        
+        final String searchEmail = email;
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UserNotFoundException("User not found with email: " + searchEmail));
+
+        // Generate 6-digit OTP
+        String otp = String.format("%06d", new Random().nextInt(1000000));
+        
+        // Store in Redis
+        OtpDetails otpDetails = OtpDetails.builder()
+                .otp(otp)
+                .verified(false)
+                .build();
+        
+        redisTemplate.opsForValue().set(OTP_KEY_PREFIX + email, otpDetails, OTP_EXPIRY_MINUTES, TimeUnit.MINUTES);
+        
+        // Send to RabbitMQ
+        ForgotPasswordEvent event = new ForgotPasswordEvent(email, otp);
+        rabbitTemplate.convertAndSend(RabbitMQConfig.EXCHANGE, RabbitMQConfig.RK_FORGOT_PASSWORD, event);
+        
+        log.info("OTP generated and event published | email: {}", email);
+    }
+
+    @Override
+    public boolean verifyOtp(String email, String otp) {
+        log.info("Verifying OTP | email: {}", email);
+        
+        OtpDetails details = (OtpDetails) redisTemplate.opsForValue().get(OTP_KEY_PREFIX + email);
+        
+        if (details != null && details.getOtp().equals(otp)) {
+            details.setVerified(true);
+            // Update in redis to mark as verified for password reset step
+            redisTemplate.opsForValue().set(OTP_KEY_PREFIX + email, details, 10, TimeUnit.MINUTES);
+            log.info("OTP verified successfully | email: {}", email);
+            return true;
+        }
+        
+        log.warn("Invalid OTP attempt | email: {}", email);
+        return false;
+    }
+
+    @Override
+    public void resetPassword(String email, String newPassword) {
+        log.info("Resetting password | email: {}", email);
+        
+        OtpDetails details = (OtpDetails) redisTemplate.opsForValue().get(OTP_KEY_PREFIX + email);
+        
+        if (details == null || !details.isVerified()) {
+            log.error("Password reset attempt without OTP verification | email: {}", email);
+            throw new UnauthorizedException("OTP not verified for this email!");
+        }
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UserNotFoundException("User not found with email: " + email));
+
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+        
+        // Delete OTP from redis after successful reset
+        redisTemplate.delete(OTP_KEY_PREFIX + email);
+        
+        log.info("Password reset successfully | email: {}", email);
     }
 }
 

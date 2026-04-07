@@ -129,7 +129,7 @@
 
                     <div class="flex items-center gap-2">
                       <span class="badge" [ngClass]="statusColor(app.status)">{{ app.status | titlecase }}</span>
-                      @if (app.status === 'PENDING' || app.status === 'UNDER_REVIEW') {
+                      @if (app.status === 'APPLIED' || app.status === 'PENDING' || app.status === 'UNDER_REVIEW') {
                         <button class="btn-primary text-xs py-1.5 px-3 bg-green-600 hover:bg-green-700"
                                 (click)="updateStatus(app.id, 'ACCEPTED')">Accept</button>
                         <button class="btn-primary text-xs py-1.5 px-3 bg-red-500 hover:bg-red-600"

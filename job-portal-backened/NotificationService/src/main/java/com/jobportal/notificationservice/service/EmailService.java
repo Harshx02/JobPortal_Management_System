@@ -145,12 +145,38 @@ public class EmailService {
         }
     }
 
+    public void sendOtpEmail(String email, String otp) {
+        log.info("Sending OTP email | email: {}", email);
+        
+        try {
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setTo(email);
+            message.setSubject("Password Reset OTP — Job Portal");
+            message.setText(
+                    "Hi,\n\n"
+                            + "You requested a password reset. Use the OTP below to proceed:\n\n"
+                            + "OTP: " + otp + "\n\n"
+                            + "This OTP is valid for 5 minutes. If you did not request this, please ignore this email.\n\n"
+                            + "Best regards,\n"
+                            + "Job Portal Team"
+            );
+            
+            mailSender.send(message);
+            log.info("OTP email sent successfully | email: {}", email);
+            
+        } catch (Exception e) {
+            log.error("Failed to send OTP email | email: {}", email, e);
+        }
+    }
+
     private String getStatusMessage(String status) {
         return switch (status) {
             case "UNDER_REVIEW" ->
                     "Your application is currently under review. We will update you soon!";
             case "SHORTLISTED" ->
                     "Congratulations! You have been shortlisted. The recruiter will contact you shortly.";
+            case "ACCEPTED" ->
+                    "Great news! Your application has been accepted. Welcome aboard!";
             case "REJECTED" ->
                     "Thank you for your interest. Unfortunately, your application was not selected this time. Keep applying!";
             default ->

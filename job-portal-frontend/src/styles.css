@@ -1,6 +1,5 @@
-@import "tailwindcss";
-
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+@import "tailwindcss";
 
 *, *::before, *::after { box-sizing: border-box; }
 
@@ -18,6 +17,66 @@
   --gray-600: #4b5563;
   --gray-700: #374151;
   --gray-900: #111827;
+}
+
+.dark {
+  --gray-50: #0f172a;
+  --gray-100: #1e293b;
+  --gray-200: #334155;
+  --gray-600: #94a3b8;
+  --gray-700: #cbd5e1;
+  --gray-900: #f8fafc;
+  
+  background-color: #020617;
+  color: var(--gray-900);
+}
+
+.dark .card {
+  background: #0f172a;
+  border-color: #1e293b;
+  box-shadow: 0 4px 20px rgba(0,0,0,.3);
+}
+
+.dark .card:hover { box-shadow: 0 8px 30px rgba(37,99,235,.15); }
+
+.dark .form-input {
+  background: #1e293b;
+  border-color: #334155;
+  color: white;
+}
+
+.dark .form-input:focus { border-color: var(--primary); }
+
+.dark .bg-white { background-color: #0f172a !important; }
+.dark .bg-gray-50 { background-color: #020617 !important; }
+.dark .text-gray-900 { color: #f8fafc !important; }
+.dark .text-gray-800 { color: #f1f5f9 !important; }
+.dark .text-gray-700 { color: #cbd5e1 !important; }
+.dark .text-gray-600 { color: #94a3b8 !important; }
+.dark .text-gray-500 { color: #64748b !important; }
+.dark .border-gray-100 { border-color: #1e293b !important; }
+.dark .border-gray-50 { border-color: #1e293b !important; }
+
+/* Notification Dark Mode fixes */
+.dark .bg-blue-50 { background-color: rgba(37, 99, 235, 0.1) !important; }
+.dark .hover\:bg-gray-50:hover { background-color: #1e293b !important; }
+.dark .bg-gray-50\/50 { background-color: rgba(30, 41, 59, 0.5) !important; }
+
+.dark nav {
+  background-color: rgba(15, 23, 42, 0.8) !important;
+  backdrop-filter: blur(12px);
+  border-bottom-color: #1e293b !important;
+}
+
+.dark .badge-gray { background: #1e293b; color: #cbd5e1; }
+.dark .btn-ghost:hover { background: #1e293b; color: #f8fafc; }
+.dark .btn-outline { background: transparent; color: var(--primary); }
+.dark .btn-outline:hover { background: rgba(37,99,235, .1); }
+
+/* Skeleton dark mode */
+.dark .skeleton {
+  background: linear-gradient(90deg, #1e293b 25%, #334155 50%, #1e293b 75%);
+  background-size: 200% 100%;
 }
 
 html, body {

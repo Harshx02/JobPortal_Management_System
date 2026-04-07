@@ -1,5 +1,5 @@
 import { Component, OnInit, signal } from '@angular/core';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { NavbarComponent } from '../../../shared/components/navbar/navbar.component';
 import { ApplicationService } from '../../../core/services/application.service';
@@ -8,7 +8,7 @@ import { ApplicationResponse, ApplicationStatus } from '../../../core/models/app
 @Component({
   selector: 'app-my-applications',
   standalone: true,
-  imports: [CommonModule, NavbarComponent],
+  imports: [CommonModule, NavbarComponent, RouterLink],
   templateUrl: './my-applications.component.html'
 })
 export class MyApplicationsComponent implements OnInit {
@@ -46,7 +46,11 @@ export class MyApplicationsComponent implements OnInit {
     }
   }
 
-  viewJob(jobId: number) { this.router.navigate(['/jobs', jobId]); }
+  viewJob(jobId?: number) {
+    if (jobId) {
+      this.router.navigate(['/jobs', jobId]);
+    }
+  }
 
   getCount(status: string): number {
     return this.applications().filter(a => a.status === status).length;

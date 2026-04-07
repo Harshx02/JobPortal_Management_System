@@ -1,14 +1,16 @@
-export type ApplicationStatus = 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'UNDER_REVIEW';
+export type ApplicationStatus = 'APPLIED' | 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'UNDER_REVIEW' | 'SHORTLISTED';
 
 export interface ApplicationResponse {
   id: number;
-  jobId: number;
   userId: number;
   resumeUrl: string;
   status: ApplicationStatus;
   appliedAt: string;
-  jobTitle?: string;
-  companyName?: string;
+  job?: {
+    id: number;
+    title: string;
+    companyName: string;
+  };
 }
 
 export interface JobApplicationResponse {

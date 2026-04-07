@@ -39,6 +39,19 @@ export class AuthService {
     return this.http.get<UserResponse>(`${this.apiUrl}/profile`);
   }
 
+  forgotPassword(email: string): Observable<string> {
+    return this.http.post(`${this.apiUrl}/forgot-password`, { email }, { responseType: 'text' });
+  }
+
+  verifyOtp(email: string, otp: string): Observable<string> {
+    return this.http.post(`${this.apiUrl}/verify-otp`, { email, otp }, { responseType: 'text' });
+  }
+
+  resetPassword(payload: any): Observable<string> {
+    return this.http.post(`${this.apiUrl}/reset-password`, payload, { responseType: 'text' });
+  }
+
+
   logout(): void {
     localStorage.removeItem('jp_token');
     localStorage.removeItem('jp_user');
