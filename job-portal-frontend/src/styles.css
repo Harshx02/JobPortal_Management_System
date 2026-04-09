@@ -57,8 +57,11 @@
 .dark .border-gray-100 { border-color: #1e293b !important; }
 .dark .border-gray-50 { border-color: #1e293b !important; }
 
-/* Notification Dark Mode fixes */
-.dark .bg-blue-50 { background-color: rgba(37, 99, 235, 0.1) !important; }
+/* Theme Background Dark Mode fixes */
+.dark .bg-blue-50   { background-color: rgba(37, 99, 235, 0.1) !important; }
+.dark .bg-green-50  { background-color: rgba(16, 185, 129, 0.1) !important; }
+.dark .bg-purple-50 { background-color: rgba(139, 92, 246, 0.1) !important; }
+.dark .bg-orange-50 { background-color: rgba(245, 158, 11, 0.1) !important; }
 .dark .hover\:bg-gray-50:hover { background-color: #1e293b !important; }
 .dark .bg-gray-50\/50 { background-color: rgba(30, 41, 59, 0.5) !important; }
 
