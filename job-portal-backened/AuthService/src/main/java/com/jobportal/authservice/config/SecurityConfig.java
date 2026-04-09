@@ -41,7 +41,10 @@ public class SecurityConfig {
                         "/v3/api-docs/**",
                         "/swagger-ui/**",
                         "/swagger-ui.html",
-                        "/actuator/**"
+                        "/actuator/**",
+                        "/api/auth/forgot-password",
+                        "/api/auth/verify-otp",
+                        "/api/auth/reset-password"
                     ).permitAll()
                 
                 // Allow internal service calls
