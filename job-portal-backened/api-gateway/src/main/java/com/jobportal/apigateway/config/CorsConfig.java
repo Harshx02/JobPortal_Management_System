@@ -17,8 +17,11 @@ public class CorsConfig {
 
         CorsConfiguration config = new CorsConfiguration();
 
-        // Allow requests from Angular frontend
-        config.setAllowedOriginPatterns(List.of("*"));
+        // Allow requests only from your specific frontend URL
+        config.setAllowedOrigins(List.of(
+            "http://40.82.128.83",
+            "http://localhost:4200"
+        ));
 
         // Allow these HTTP methods
         config.setAllowedMethods(Arrays.asList(
