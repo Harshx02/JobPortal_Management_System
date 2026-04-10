@@ -20,7 +20,7 @@ export class ProfileService {
 
   uploadProfileImage(userId: number, file: File): Observable<{ profileImageUrl: string }> {
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append('image', file);
     return this.http.post<{ profileImageUrl: string }>(`${this.apiUrl}/users/${userId}/profile-image`, formData);
   }
 }

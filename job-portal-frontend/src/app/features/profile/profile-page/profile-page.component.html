@@ -90,7 +90,7 @@
           <div class="border-t border-gray-100 pt-6">
             <h3 class="text-sm font-semibold text-gray-900 uppercase tracking-wider mb-3">Skills</h3>
             <div *ngIf="profile()?.skills" class="flex flex-wrap gap-2">
-              <span *ngFor="let s of profile()?.skills?.split(',')" class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800 border border-gray-200">
+              <span *ngFor="let s of profile()?.skills?.split(',')" class="badge badge-gray">
                 {{ s.trim() }}
               </span>
             </div>

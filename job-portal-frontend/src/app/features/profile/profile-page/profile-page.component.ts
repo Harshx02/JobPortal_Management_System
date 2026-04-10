@@ -102,9 +102,9 @@ export class ProfilePageComponent implements OnInit {
     const file = event.target.files[0];
     if (file) {
       // Must use userId from local storage or auth response
-      const userId = this.authService.userId();
+      const userId = this.authService.userId() || this.profile()?.id;
       if (!userId) {
-        this.error.set('User ID not found. Please log in again.');
+        this.error.set('User ID not found. Please load your profile first.');
         return;
       }
 
