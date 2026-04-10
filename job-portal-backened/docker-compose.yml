@@ -274,6 +274,19 @@ services:
       - jobportal-network
 
   # ===============================
+  # FRONTEND (Angular)
+  # ===============================
+  frontend:
+    build: ../job-portal-frontend
+    container_name: job-portal-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - api-gateway
+    networks:
+      - jobportal-network
+
+  # ===============================
   # ZIPKIN (Distributed Tracing)
   # ===============================
   zipkin:
