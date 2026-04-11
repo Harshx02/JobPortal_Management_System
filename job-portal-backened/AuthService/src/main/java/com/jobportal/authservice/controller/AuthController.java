@@ -36,7 +36,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @RestController
 @RequestMapping("/api/auth")
-@CrossOrigin(origins = "*")
+
 public class AuthController {
 
     @Autowired
@@ -71,8 +71,7 @@ public class AuthController {
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
-    @PostMapping(value = "/users/{id}/profile-image",
-            consumes = "multipart/form-data")
+    @PostMapping(value = "/users/{id}/profile-image", consumes = "multipart/form-data")
     public ResponseEntity<UserResponse> uploadProfileImage(
             @PathVariable Long id,
             @RequestParam("image") MultipartFile image)
@@ -110,8 +109,8 @@ public class AuthController {
 
         // ✅ Security check: Allow if ADMIN or valid Internal Secret
         if ((role != null && role.equalsIgnoreCase("ADMIN")) ||
-            (secret != null && secret.equals(internalSecret))) {
-            
+                (secret != null && secret.equals(internalSecret))) {
+
             List<UserResponse> users = authService.getAllUsers();
             return ResponseEntity.ok(users);
         }
@@ -127,13 +126,13 @@ public class AuthController {
             @RequestHeader(value = "X-User-Role", required = false) String role,
             @RequestHeader(value = "X-Internal-Secret", required = false) String secret) {
 
-        log.info("Fetch user by ID API called | targetId: {} | loggedInUserId: {} | role: {}", 
+        log.info("Fetch user by ID API called | targetId: {} | loggedInUserId: {} | role: {}",
                 id, loggedInUserId, role);
 
         // ✅ Security check: Allow if self, ADMIN, or valid Internal Secret
         if ((loggedInUserId != null && loggedInUserId.equals(id)) ||
-            (role != null && role.equalsIgnoreCase("ADMIN")) ||
-            (secret != null && secret.equals(internalSecret))) {
+                (role != null && role.equalsIgnoreCase("ADMIN")) ||
+                (secret != null && secret.equals(internalSecret))) {
 
             UserResponse response = authService.getUserById(id);
             return ResponseEntity.ok(response);
@@ -150,8 +149,7 @@ public class AuthController {
 
         log.info("Update profile API called | userId: {}", userId);
 
-        UserResponse response =
-                authService.updateProfile(userId, request);
+        UserResponse response = authService.updateProfile(userId, request);
 
         return ResponseEntity.ok(response);
     }

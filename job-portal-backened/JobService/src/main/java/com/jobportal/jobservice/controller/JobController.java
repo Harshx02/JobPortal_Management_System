@@ -30,120 +30,114 @@ import lombok.extern.slf4j.Slf4j;
 @RestController
 @RequestMapping("/api/jobs")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 public class JobController {
 
-    private final JobService jobService;
+        private final JobService jobService;
 
-    @PostMapping
-    public ResponseEntity<JobResponseDto> createJob(
-            @Valid @RequestBody JobRequestDto dto,
-            @RequestHeader("X-User-Id") Long recruiterId,
-            @RequestHeader("X-User-Role") String role) {
+        @PostMapping
+        public ResponseEntity<JobResponseDto> createJob(
+                        @Valid @RequestBody JobRequestDto dto,
+                        @RequestHeader("X-User-Id") Long recruiterId,
+                        @RequestHeader("X-User-Role") String role) {
 
-        log.info("Create Job API | recruiterId: {} | role: {} | title: {}",
-                recruiterId, role, dto.getTitle());
+                log.info("Create Job API | recruiterId: {} | role: {} | title: {}",
+                                recruiterId, role, dto.getTitle());
 
-        JobResponseDto response =
-                jobService.createJob(dto, recruiterId, role);
+                JobResponseDto response = jobService.createJob(dto, recruiterId, role);
 
-        log.info("Job created | jobId: {} | recruiterId: {}",
-                response.getId(), recruiterId);
+                log.info("Job created | jobId: {} | recruiterId: {}",
+                                response.getId(), recruiterId);
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
-    }
+                return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        }
 
-    @GetMapping
-    public ResponseEntity<Page<JobResponseDto>> getAllJobs(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "createdAt") String sortBy,
-            @RequestParam(defaultValue = "desc") String direction) {
+        @GetMapping
+        public ResponseEntity<Page<JobResponseDto>> getAllJobs(
+                        @RequestParam(defaultValue = "0") int page,
+                        @RequestParam(defaultValue = "10") int size,
+                        @RequestParam(defaultValue = "createdAt") String sortBy,
+                        @RequestParam(defaultValue = "desc") String direction) {
 
-        log.info("Get jobs | page: {} | size: {} | sortBy: {} | direction: {}",
-                page, size, sortBy, direction);
+                log.info("Get jobs | page: {} | size: {} | sortBy: {} | direction: {}",
+                                page, size, sortBy, direction);
 
-        Page<JobResponseDto> response =
-                jobService.getAllJobs(page, size, sortBy, direction);
+                Page<JobResponseDto> response = jobService.getAllJobs(page, size, sortBy, direction);
 
-        log.debug("Jobs fetched | count: {}", response.getNumberOfElements());
+                log.debug("Jobs fetched | count: {}", response.getNumberOfElements());
 
-        return ResponseEntity.ok(response);
-    }
+                return ResponseEntity.ok(response);
+        }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<JobResponseDto> getJobById(@PathVariable Long id) {
+        @GetMapping("/{id}")
+        public ResponseEntity<JobResponseDto> getJobById(@PathVariable Long id) {
 
-        log.info("Get job | jobId: {}", id);
+                log.info("Get job | jobId: {}", id);
 
-        JobResponseDto response = jobService.getJobById(id);
+                JobResponseDto response = jobService.getJobById(id);
 
-        log.info("Job fetched | jobId: {}", id);
+                log.info("Job fetched | jobId: {}", id);
 
-        return ResponseEntity.ok(response);
-    }
+                return ResponseEntity.ok(response);
+        }
 
-    @PutMapping("/{id}")
-    public ResponseEntity<JobResponseDto> updateJob(
-            @PathVariable Long id,
-            @Valid @RequestBody JobRequestDto dto,
-            @RequestHeader("X-User-Id") Long recruiterId) {
+        @PutMapping("/{id}")
+        public ResponseEntity<JobResponseDto> updateJob(
+                        @PathVariable Long id,
+                        @Valid @RequestBody JobRequestDto dto,
+                        @RequestHeader("X-User-Id") Long recruiterId) {
 
-        log.info("Update job | jobId: {} | recruiterId: {}", id, recruiterId);
+                log.info("Update job | jobId: {} | recruiterId: {}", id, recruiterId);
 
-        JobResponseDto response =
-                jobService.updateJob(id, dto, recruiterId);
+                JobResponseDto response = jobService.updateJob(id, dto, recruiterId);
 
-        log.info("Job updated | jobId: {}", id);
+                log.info("Job updated | jobId: {}", id);
 
-        return ResponseEntity.ok(response);
-    }
+                return ResponseEntity.ok(response);
+        }
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Map<String, String>> deleteJob(
-            @PathVariable Long id,
-            @RequestHeader("X-User-Id") Long recruiterId) {
+        @DeleteMapping("/{id}")
+        public ResponseEntity<Map<String, String>> deleteJob(
+                        @PathVariable Long id,
+                        @RequestHeader("X-User-Id") Long recruiterId) {
 
-        log.info("Delete job | jobId: {} | recruiterId: {}", id, recruiterId);
+                log.info("Delete job | jobId: {} | recruiterId: {}", id, recruiterId);
 
-        jobService.deleteJob(id, recruiterId);
+                jobService.deleteJob(id, recruiterId);
 
-        log.info("Job deleted | jobId: {}", id);
+                log.info("Job deleted | jobId: {}", id);
 
-        return ResponseEntity.ok(
-                Map.of("message", "Job deleted successfully!"));
-    }
+                return ResponseEntity.ok(
+                                Map.of("message", "Job deleted successfully!"));
+        }
 
-    @PostMapping("/search")
-    public ResponseEntity<Page<JobResponseDto>> searchJobs(
-            @RequestBody JobFilterDto filter,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "createdAt") String sortBy,
-            @RequestParam(defaultValue = "desc") String direction) {
+        @PostMapping("/search")
+        public ResponseEntity<Page<JobResponseDto>> searchJobs(
+                        @RequestBody JobFilterDto filter,
+                        @RequestParam(defaultValue = "0") int page,
+                        @RequestParam(defaultValue = "10") int size,
+                        @RequestParam(defaultValue = "createdAt") String sortBy,
+                        @RequestParam(defaultValue = "desc") String direction) {
 
-        log.info("Search jobs | page: {} | size: {} | filter: {}",
-                page, size, filter);
+                log.info("Search jobs | page: {} | size: {} | filter: {}",
+                                page, size, filter);
 
-        Page<JobResponseDto> response =
-                jobService.searchJobs(filter, page, size, sortBy, direction);
+                Page<JobResponseDto> response = jobService.searchJobs(filter, page, size, sortBy, direction);
 
-        log.debug("Search result count: {}", response.getNumberOfElements());
+                log.debug("Search result count: {}", response.getNumberOfElements());
 
-        return ResponseEntity.ok(response);
-    }
+                return ResponseEntity.ok(response);
+        }
 
-    @DeleteMapping("/recruiter/{recruiterId}")
-    public ResponseEntity<Void> deleteRecruiterJobs(
-            @PathVariable Long recruiterId) {
+        @DeleteMapping("/recruiter/{recruiterId}")
+        public ResponseEntity<Void> deleteRecruiterJobs(
+                        @PathVariable Long recruiterId) {
 
-        log.info("Delete recruiter jobs | recruiterId: {}", recruiterId);
+                log.info("Delete recruiter jobs | recruiterId: {}", recruiterId);
 
-        jobService.deleteRecruiterJobs(recruiterId);
+                jobService.deleteRecruiterJobs(recruiterId);
 
-        log.info("Recruiter jobs deleted | recruiterId: {}", recruiterId);
+                log.info("Recruiter jobs deleted | recruiterId: {}", recruiterId);
 
-        return ResponseEntity.noContent().build();
-    }
+                return ResponseEntity.noContent().build();
+        }
 }
-

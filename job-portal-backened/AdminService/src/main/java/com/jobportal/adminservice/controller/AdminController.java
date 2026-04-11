@@ -25,7 +25,6 @@ import lombok.extern.slf4j.Slf4j;
 @RestController
 @RequestMapping("/api/admin")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 public class AdminController {
 
     private final AdminService adminService;
@@ -147,10 +146,9 @@ public class AdminController {
 
         return ResponseEntity.ok(reports);
     }
-    
+
     public void Test() {
-    	String s  = null;
-    	System.out.println(s);
+        String s = null;
+        System.out.println(s);
     }
 }
-
