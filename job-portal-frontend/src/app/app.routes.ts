@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
 import { roleGuard } from './core/guards/role.guard';
+import { deactivateGuard } from './core/guards/deactivate.guard';
 
 export const routes: Routes = [
   // Default redirect

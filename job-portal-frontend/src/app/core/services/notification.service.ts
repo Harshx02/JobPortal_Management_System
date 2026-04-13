@@ -4,6 +4,7 @@ import { AuthService } from './auth.service';
 import { JobService } from './job.service';
 import { ApplicationService } from './application.service';
 import { AdminService } from './admin.service';
+import { ApplicationResponse, JobApplicationResponse } from '../models/application.model';
 import { forkJoin, map, take } from 'rxjs';
 
 @Injectable({
@@ -41,8 +42,8 @@ export class NotificationService {
   }
 
   private loadJobSeekerNotifications() {
-    this.appService.getUserApplications().subscribe(apps => {
-      const notifications: Notification[] = apps.slice(0, 5).map(app => ({
+    this.appService.getUserApplications().subscribe(page => {
+      const notifications: Notification[] = page.content.slice(0, 5).map((app: ApplicationResponse) => ({
         id: `app-${app.id}`,
         message: `Your application for ${app.job?.title || 'Job'} is now: ${app.status}`,
         timestamp: new Date(),
@@ -76,8 +77,8 @@ export class NotificationService {
       const requests = recruiterJobs.map(job => this.appService.getJobApplications(job.id));
       
       forkJoin(requests).subscribe(results => {
-        const allApps = results.flat();
-        const notifications: Notification[] = allApps.slice(0, 10).map(app => {
+        const allApps = results.flatMap(page => page.content);
+        const notifications: Notification[] = allApps.slice(0, 10).map((app: JobApplicationResponse) => {
           const job = recruiterJobs.find(j => j.id === app.jobId);
           return {
             id: `rec-app-${app.id}`,
