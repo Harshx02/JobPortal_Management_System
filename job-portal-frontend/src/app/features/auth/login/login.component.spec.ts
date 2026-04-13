@@ -85,4 +85,52 @@ describe('LoginComponent', () => {
     expect(component.loading()).toBe(false);
     expect(component.error()).toBe(errorMsg);
   });
+
+  it('should redirect based on returnUrl after login', () => {
+    const returnUrl = '/jobs/1';
+    activatedRoute.snapshot.queryParamMap.get.mockReturnValue(returnUrl);
+    authService.login.mockReturnValue(of({ token: 'jwt' }));
+    component.form.setValue({ email: 'test@test.com', password: 'password123' });
+
+    component.submit();
+
+    expect(router.navigateByUrl).toHaveBeenCalledWith(returnUrl);
+  });
+
+  it('should redirect to recruiter dashboard if role is RECRUITER', () => {
+    authService.login.mockReturnValue(of({ token: 'jwt' }));
+    authService.userRole.mockReturnValue('RECRUITER');
+    component.form.setValue({ email: 'rec@test.com', password: 'password123' });
+
+    component.submit();
+
+    expect(router.navigate).toHaveBeenCalledWith(['/recruiter/dashboard']);
+  });
+
+  it('should use default error message if error object is empty', () => {
+    authService.login.mockReturnValue(throwError(() => ({})));
+    component.form.setValue({ email: 'test@test.com', password: 'password' });
+
+    component.submit();
+
+    expect(component.error()).toBe('Invalid email or password. Please try again.');
+  });
+
+  it('should have working getters for email and password', () => {
+    expect(component.email).toBeTruthy();
+    expect(component.password).toBeTruthy();
+  });
+
+  describe('Constructor redirection', () => {
+    it('should redirect to dashboard on init if already logged in', () => {
+      authService.isLoggedIn.mockReturnValue(true);
+      authService.userRole.mockReturnValue('ADMIN');
+      
+      // We need to re-create the component to trigger the constructor logic after changing mocks
+      fixture = TestBed.createComponent(LoginComponent);
+      component = fixture.componentInstance;
+      
+      expect(router.navigate).toHaveBeenCalledWith(['/admin/dashboard']);
+    });
+  });
 });

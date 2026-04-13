@@ -6,7 +6,10 @@ import { NotificationService } from '../../../core/services/notification.service
 import { Router } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
-import { signal } from '@angular/core';
+import { signal, Component } from '@angular/core';
+
+@Component({ standalone: true, template: '' })
+class DummyComponent {}
 
 describe('NavbarComponent', () => {
   let component: NavbarComponent;
@@ -33,7 +36,12 @@ describe('NavbarComponent', () => {
     };
     
     await TestBed.configureTestingModule({
-      imports: [NavbarComponent, RouterTestingModule],
+      imports: [
+        NavbarComponent, 
+        RouterTestingModule.withRoutes([
+          { path: '**', component: DummyComponent }
+        ])
+      ],
       providers: [
         provideHttpClientTesting(),
         { provide: AuthService, useValue: authMock },
@@ -46,8 +54,13 @@ describe('NavbarComponent', () => {
     component = fixture.componentInstance;
     routerMock = TestBed.inject(Router);
     vi.spyOn(routerMock, 'navigate').mockImplementation(() => Promise.resolve(true));
+    vi.spyOn(routerMock, 'navigateByUrl').mockImplementation(() => Promise.resolve(true));
     
     fixture.detectChanges();
+  });
+
+  afterEach(() => {
+    fixture.destroy();
   });
 
   it('should create', () => {
@@ -125,5 +138,126 @@ describe('NavbarComponent', () => {
     
     component.goToRegister();
     expect(routerMock.navigate).toHaveBeenCalledWith(['/auth/register']);
+  });
+
+  it('should not close notifications when clicking inside container', () => {
+    component.showNotifications.set(true);
+    fixture.detectChanges();
+    
+    const div = document.createElement('div');
+    div.className = 'notification-container';
+    component.onDocumentClick({ target: div } as any);
+    
+    expect(component.showNotifications()).toBe(true);
+  });
+
+  it('should toggle notifications off and not refresh', () => {
+    notificationMock.refreshNotifications.mockClear();
+    component.showNotifications.set(true);
+    
+    component.toggleNotifications(); // Should set it to false
+    expect(component.showNotifications()).toBe(false);
+    expect(notificationMock.refreshNotifications).not.toHaveBeenCalled();
+  });
+
+  it('should show "Post a Job" only for RECRUITER', () => {
+    authMock.isLoggedIn.set(true);
+    authMock.userRole.set('RECRUITER');
+    fixture.detectChanges();
+    let compiled = fixture.nativeElement;
+    expect(compiled.textContent).toContain('Post a Job');
+
+    authMock.userRole.set('JOB_SEEKER');
+    fixture.detectChanges();
+    expect(compiled.textContent).not.toContain('Post a Job');
+  });
+
+  it('should show unread count badge when count > 0', () => {
+    authMock.isLoggedIn.set(true);
+    notificationMock.unreadCount.set(5);
+    fixture.detectChanges();
+    let badge = fixture.nativeElement.querySelector('.bg-red-500');
+    expect(badge).toBeTruthy();
+    expect(badge.textContent).toContain('5');
+  });
+
+  it('should call themeService.toggleTheme on button click', () => {
+    themeMock.toggleTheme = vi.fn();
+    fixture.detectChanges();
+    const themeBtn = fixture.nativeElement.querySelector('button[title*="Mode"]');
+    themeBtn.click();
+    expect(themeMock.toggleTheme).toHaveBeenCalled();
+  });
+
+  it('should close mobile menu when clicking navigation links', () => {
+    component.mobileOpen.set(true);
+    fixture.detectChanges();
+    const spy = vi.spyOn(component, 'closeMobile');
+    
+    const homeLink = fixture.nativeElement.querySelector('a[routerLink="/home"]');
+    homeLink.click();
+    expect(spy).toHaveBeenCalled();
+  });
+
+  it('should call logout and close mobile on mobile logout button', () => {
+    authMock.isLoggedIn.set(true);
+    component.mobileOpen.set(true);
+    fixture.detectChanges();
+    
+    const logoutBtn = Array.from(fixture.nativeElement.querySelectorAll('button'))
+      .find((b: any) => b.textContent.includes('Logout')) as HTMLButtonElement;
+    
+    logoutBtn.click();
+    expect(authMock.logout).toHaveBeenCalled();
+    expect(component.mobileOpen()).toBe(false);
+  });
+
+  it('should cover notification type branches', () => {
+    authMock.isLoggedIn.set(true);
+    component.showNotifications.set(true);
+    notificationMock.notifications.set([
+      { id: 1, message: 'Success', type: 'SUCCESS', isRead: false, timestamp: new Date() },
+      { id: 2, message: 'Warning', type: 'WARNING', isRead: false, timestamp: new Date() },
+      { id: 3, message: 'Info', type: 'INFO', isRead: true, timestamp: new Date() }
+    ]);
+    fixture.detectChanges();
+    
+    const notes = fixture.nativeElement.querySelectorAll('.rounded-full');
+    expect(notes.length).toBeGreaterThanOrEqual(3);
+  });
+
+  it('should handle null username in template', () => {
+    authMock.isLoggedIn.set(true);
+    authMock.userName.set(null);
+    fixture.detectChanges();
+    
+    const avatar = fixture.nativeElement.querySelector('.bg-blue-600');
+    expect(avatar.textContent).toContain('U');
+  });
+
+  it('should click mobile "Post a Job" link', () => {
+    authMock.isLoggedIn.set(true);
+    authMock.userRole.set('RECRUITER');
+    component.mobileOpen.set(true);
+    fixture.detectChanges();
+    
+    const postJobLink = Array.from(fixture.nativeElement.querySelectorAll('a'))
+      .find((a: any) => a.textContent.includes('Post a Job') && a.classList.contains('justify-start')) as HTMLAnchorElement;
+    
+    expect(postJobLink).toBeTruthy();
+    postJobLink.click();
+    expect(component.mobileOpen()).toBe(false);
+  });
+
+  it('should click mobile "My Profile" link', () => {
+    authMock.isLoggedIn.set(true);
+    component.mobileOpen.set(true);
+    fixture.detectChanges();
+    
+    const profileLink = Array.from(fixture.nativeElement.querySelectorAll('a'))
+      .find((a: any) => a.textContent.includes('My Profile') && a.classList.contains('justify-start')) as HTMLAnchorElement;
+    
+    profileLink.click();
+    expect(component.mobileOpen()).toBe(false);
   });
 });

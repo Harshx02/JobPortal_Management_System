@@ -90,4 +90,46 @@ describe('RegisterComponent', () => {
     expect(component.loading()).toBe(false);
     expect(component.error()).toBe(errorMsg);
   });
+
+  it('should redirect to recruiter dashboard if role is RECRUITER', () => {
+    authService.register.mockReturnValue(of({ token: 'jwt' }));
+    authService.userRole.mockReturnValue('RECRUITER');
+    component.form.setValue({ 
+        name: 'Recruiter User',
+        email: 'rec@test.com', 
+        password: 'password123',
+        role: 'RECRUITER'
+    });
+
+    component.submit();
+
+    expect(router.navigate).toHaveBeenCalledWith(['/recruiter/dashboard']);
+  });
+
+  it('should redirect back to home if user is already logged in on init', () => {
+    authService.isLoggedIn.mockReturnValue(true);
+    
+    fixture = TestBed.createComponent(RegisterComponent);
+    component = fixture.componentInstance;
+    
+    expect(router.navigate).toHaveBeenCalledWith(['/home']);
+  });
+
+  it('should use default registration error message if response is empty', () => {
+    authService.register.mockReturnValue(throwError(() => ({})));
+    component.form.setValue({ 
+        name: 'test', email: 'test@t.com', password: 'password', role: 'JOB_SEEKER' 
+    });
+
+    component.submit();
+
+    expect(component.error()).toBe('Registration failed. Email may already be in use.');
+  });
+
+  it('should have working getters for form controls', () => {
+    expect(component.name).toBeTruthy();
+    expect(component.email).toBeTruthy();
+    expect(component.password).toBeTruthy();
+    expect(component.role).toBeTruthy();
+  });
 });
