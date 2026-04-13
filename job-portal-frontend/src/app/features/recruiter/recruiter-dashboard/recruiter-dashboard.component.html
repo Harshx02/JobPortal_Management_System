@@ -81,6 +81,12 @@
               </div>
             }
           </div>
+
+          <!-- Jobs Pagination -->
+          <app-pagination class="mt-4"
+            [currentPage]="jobsPage()" 
+            [totalPages]="jobsTotalPages()" 
+            (pageChange)="onJobsPageChange($event)" />
         }
       </div>
 

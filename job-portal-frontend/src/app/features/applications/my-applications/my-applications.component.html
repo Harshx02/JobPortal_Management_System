@@ -100,6 +100,12 @@
           </div>
         }
       </div>
+
+      <!-- Pagination -->
+      <app-pagination 
+        [currentPage]="page()" 
+        [totalPages]="totalPages()" 
+        (pageChange)="onPageChange($event)" />
     }
   </div>
 </div>

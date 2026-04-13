@@ -115,24 +115,10 @@
 
           <!-- Pagination -->
           @if (totalPages() > 1) {
-            <div class="flex items-center justify-center gap-2 mt-10 flex-wrap">
-              <button class="btn-outline py-2 px-4 text-sm disabled:opacity-40"
-                      [disabled]="page() === 0" (click)="goToPage(page() - 1)">← Prev</button>
-
-              @for (p of pages; track p) {
-                @if (p < 5 || p === totalPages() - 1 || Math.abs(p - page()) <= 1) {
-                  <button class="w-9 h-9 rounded-lg text-sm font-medium transition"
-                          [class.bg-blue-600]="p === page()"
-                          [class.text-white]="p === page()"
-                          [class.hover:bg-gray-100]="p !== page()"
-                          [class.text-gray-700]="p !== page()"
-                          (click)="goToPage(p)">{{ p + 1 }}</button>
-                }
-              }
-
-              <button class="btn-outline py-2 px-4 text-sm disabled:opacity-40"
-                      [disabled]="page() === totalPages() - 1" (click)="goToPage(page() + 1)">Next →</button>
-            </div>
+            <app-pagination 
+              [currentPage]="page()" 
+              [totalPages]="totalPages()" 
+              (pageChange)="goToPage($event)" />
           }
         }
       </main>

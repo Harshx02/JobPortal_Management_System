@@ -1,6 +1,8 @@
 package com.capg.ApplicationService.service;
 
 import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import com.capg.ApplicationService.dto.request.ApplicationRequest;
 import com.capg.ApplicationService.dto.response.ApplicationResponse;
@@ -11,9 +13,9 @@ public interface ApplicationService {
 
     ApplicationResponse applyForJob(ApplicationRequest request, Long userId, String role, String resumeUrl);
 
-    List<ApplicationResponse> getUserApplications(Long userId, String role);
+    Page<ApplicationResponse> getUserApplications(Long userId, String role, Pageable pageable);
 
-    List<JobApplicationResponse> getJobApplications(Long jobId, String role, Long recruiterId);
+    Page<JobApplicationResponse> getJobApplications(Long jobId, String role, Long recruiterId, Pageable pageable);
 
     ApplicationResponse updateStatus(Long applicationId, ApplicationStatus status, Long recruiterId, String role);
 

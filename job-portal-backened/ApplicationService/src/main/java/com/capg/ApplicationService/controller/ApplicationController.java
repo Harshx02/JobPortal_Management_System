@@ -4,6 +4,10 @@ package com.capg.ApplicationService.controller;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -69,36 +73,40 @@ public class ApplicationController {
 
     // VIEW USER APPLICATIONS
     @GetMapping("/user/viewApplications")
-    public ResponseEntity<List<ApplicationResponse>> getUserApplications(
+    public ResponseEntity<Page<ApplicationResponse>> getUserApplications(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "appliedAt") String sortBy,
+            @RequestParam(defaultValue = "DESC") String direction,
             @RequestHeader("X-User-Id") Long userId,
             @RequestHeader("X-User-Role") String role) {
 
-        log.info("Fetch user applications API called | userId: {} | role: {}", userId, role);
+        log.info("Fetch user applications API called | userId: {} | role: {} | page: {}", userId, role, page);
 
-        List<ApplicationResponse> applications =
-                service.getUserApplications(userId, role);
-
-        log.debug("User applications fetched | userId: {} | count: {}",
-                userId, applications.size());
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.fromString(direction), sortBy));
+        Page<ApplicationResponse> applications =
+                service.getUserApplications(userId, role, pageable);
 
         return ResponseEntity.ok(applications);
     }
 
     // VIEW JOB APPLICATIONS (Recruiter)
     @GetMapping("/jobApplications/{jobId}")
-    public ResponseEntity<List<JobApplicationResponse>> getJobApplications(
+    public ResponseEntity<Page<JobApplicationResponse>> getJobApplications(
             @PathVariable Long jobId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "appliedAt") String sortBy,
+            @RequestParam(defaultValue = "DESC") String direction,
             @RequestHeader("X-User-Id") Long recruiterId,
             @RequestHeader("X-User-Role") String role) {
 
-        log.info("Fetch job applications API called | jobId: {} | recruiterId: {} | role: {}",
-                jobId, recruiterId, role);
+        log.info("Fetch job applications API called | jobId: {} | recruiterId: {} | page: {}",
+                jobId, recruiterId, page);
 
-        List<JobApplicationResponse> applications =
-                service.getJobApplications(jobId, role, recruiterId);
-
-        log.debug("Job applications fetched | jobId: {} | count: {}",
-                jobId, applications.size());
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.fromString(direction), sortBy));
+        Page<JobApplicationResponse> applications =
+                service.getJobApplications(jobId, role, recruiterId, pageable);
 
         return ResponseEntity.ok(applications);
     }

@@ -1,10 +1,12 @@
-import { Component, OnInit, signal, inject } from '@angular/core';
+import { Component, OnDestroy, OnInit, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { NavbarComponent } from '../../../shared/components/navbar/navbar.component';
 import { ProfileService } from '../../../core/services/profile.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { UserResponse, UpdateProfileRequest } from '../../../core/models/auth.model';
+import { Subject, takeUntil } from 'rxjs';
+import { HasUnsavedChanges } from '../../../core/guards/deactivate.guard';
 
 @Component({
   selector: 'app-profile-page',
@@ -12,10 +14,12 @@ import { UserResponse, UpdateProfileRequest } from '../../../core/models/auth.mo
   imports: [CommonModule, ReactiveFormsModule, NavbarComponent],
   templateUrl: './profile-page.component.html'
 })
-export class ProfilePageComponent implements OnInit {
+export class ProfilePageComponent implements OnInit, OnDestroy, HasUnsavedChanges {
   private profileService = inject(ProfileService);
   private authService = inject(AuthService);
   private fb = inject(FormBuilder);
+
+  private destroy$ = new Subject<void>();
 
   profile = signal<UserResponse | null>(null);
   loading = signal(true);
@@ -40,11 +44,22 @@ export class ProfilePageComponent implements OnInit {
     this.loadProfile();
   }
 
+  ngOnDestroy() {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
+  hasUnsavedChanges(): boolean {
+    return this.isEditing() && this.editForm.dirty;
+  }
+
   loadProfile() {
     this.loading.set(true);
     this.error.set('');
     
-    this.profileService.getProfile().subscribe({
+    this.profileService.getProfile()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
       next: (res) => {
         this.profile.set(res);
         this.loading.set(false);
@@ -83,12 +98,15 @@ export class ProfilePageComponent implements OnInit {
 
     const payload: UpdateProfileRequest = this.editForm.value;
 
-    this.profileService.updateProfile(payload).subscribe({
+    this.profileService.updateProfile(payload)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
       next: (res) => {
         this.profile.set(res);
         this.success.set('Profile updated successfully!');
         this.isEditing.set(false);
         this.loading.set(false);
+        this.editForm.markAsPristine();
         setTimeout(() => this.success.set(''), 3000);
       },
       error: (err) => {

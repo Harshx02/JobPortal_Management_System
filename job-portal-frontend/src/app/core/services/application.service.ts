@@ -3,6 +3,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { ApplicationResponse, JobApplicationResponse, ApplicationStatus } from '../models/application.model';
+import { Page } from '../models/job.model';
 
 @Injectable({ providedIn: 'root' })
 export class ApplicationService {
@@ -19,13 +20,15 @@ export class ApplicationService {
   }
 
   // GET /api/applications/user/viewApplications
-  getUserApplications(): Observable<ApplicationResponse[]> {
-    return this.http.get<ApplicationResponse[]>(`${this.apiUrl}/user/viewApplications`);
+  getUserApplications(page = 0, size = 10): Observable<Page<ApplicationResponse>> {
+    const params = new HttpParams().set('page', page).set('size', size);
+    return this.http.get<Page<ApplicationResponse>>(`${this.apiUrl}/user/viewApplications`, { params });
   }
 
   // GET /api/applications/jobApplications/{jobId}
-  getJobApplications(jobId: number): Observable<JobApplicationResponse[]> {
-    return this.http.get<JobApplicationResponse[]>(`${this.apiUrl}/jobApplications/${jobId}`);
+  getJobApplications(jobId: number, page = 0, size = 10): Observable<Page<JobApplicationResponse>> {
+    const params = new HttpParams().set('page', page).set('size', size);
+    return this.http.get<Page<JobApplicationResponse>>(`${this.apiUrl}/jobApplications/${jobId}`, { params });
   }
 
   // PATCH /api/applications/jobApplication/{id}/status

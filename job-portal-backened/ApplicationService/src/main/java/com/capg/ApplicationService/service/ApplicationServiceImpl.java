@@ -2,6 +2,8 @@ package com.capg.ApplicationService.service;
 
 import java.util.List;
 import java.util.stream.Collectors;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import org.modelmapper.ModelMapper;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -118,10 +120,11 @@ public class ApplicationServiceImpl implements ApplicationService {
     }
 
     @Override
-    public List<ApplicationResponse> getUserApplications(
-            Long userId, String role) {
+    public Page<ApplicationResponse> getUserApplications(
+            Long userId, String role, Pageable pageable) {
 
-        log.info("Fetching user applications | userId: {} | role: {}", userId, role);
+        log.info("Fetching user applications | userId: {} | role: {} | page: {}", 
+                userId, role, pageable.getPageNumber());
 
         if (!role.equalsIgnoreCase("JOB_SEEKER")) {
             log.warn("Unauthorized access to user applications | userId: {} | role: {}", userId, role);
@@ -129,8 +132,7 @@ public class ApplicationServiceImpl implements ApplicationService {
                     "Access Denied! Only Job Seekers can view their applications.");
         }
 
-        List<ApplicationResponse> result = applicationRepository.findByUserId(userId)
-                .stream()
+        Page<ApplicationResponse> result = applicationRepository.findByUserId(userId, pageable)
                 .map(app -> {
                     ApplicationResponse response =
                             modelMapper.map(app, ApplicationResponse.class);
@@ -146,19 +148,20 @@ public class ApplicationServiceImpl implements ApplicationService {
                         response.setJob(job);
                     }
                     return response;
-                })
-                .collect(Collectors.toList());
+                });
 
-        log.debug("Applications fetched | userId: {} | count: {}", userId, result.size());
+        log.debug("Applications fetched | userId: {} | totalElements: {}", 
+                userId, result.getTotalElements());
 
         return result;
     }
 
     @Override
-    public List<JobApplicationResponse> getJobApplications(
-            Long jobId, String role, Long recruiterId) {
+    public Page<JobApplicationResponse> getJobApplications(
+            Long jobId, String role, Long recruiterId, Pageable pageable) {
 
-        log.info("Fetching job applications | jobId: {} | recruiterId: {}", jobId, recruiterId);
+        log.info("Fetching job applications | jobId: {} | recruiterId: {} | page: {}", 
+                jobId, recruiterId, pageable.getPageNumber());
 
         if (!role.equalsIgnoreCase("RECRUITER")) {
             log.warn("Unauthorized access to job applications | recruiterId: {} | role: {}", recruiterId, role);
@@ -174,9 +177,8 @@ public class ApplicationServiceImpl implements ApplicationService {
                     "Access Denied! You can view applications for your own jobs.");
         }
 
-        List<JobApplicationResponse> result =
-                applicationRepository.findByJobId(jobId)
-                        .stream()
+        Page<JobApplicationResponse> result =
+                applicationRepository.findByJobId(jobId, pageable)
                         .map(app -> {
                             JobApplicationResponse response = new JobApplicationResponse();
                             response.setId(app.getId());
@@ -197,10 +199,10 @@ public class ApplicationServiceImpl implements ApplicationService {
                                 response.setApplicantEmail("N/A");
                             }
                             return response;
-                        })
-                        .collect(Collectors.toList());
+                        });
 
-        log.debug("Job applications fetched | jobId: {} | count: {}", jobId, result.size());
+        log.debug("Job applications fetched | jobId: {} | totalElements: {}", 
+                jobId, result.getTotalElements());
 
         return result;
     }

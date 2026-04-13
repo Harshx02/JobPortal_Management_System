@@ -1,10 +1,12 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { NavbarComponent } from '../../../shared/components/navbar/navbar.component';
 import { ApplicationService } from '../../../core/services/application.service';
 import { JobService } from '../../../core/services/job.service';
 import { JobResponseDto } from '../../../core/models/job.model';
+import { Subject, takeUntil } from 'rxjs';
+import { HasUnsavedChanges } from '../../../core/guards/deactivate.guard';
 
 @Component({
   selector: 'app-apply-job',
@@ -12,7 +14,7 @@ import { JobResponseDto } from '../../../core/models/job.model';
   imports: [CommonModule, NavbarComponent],
   templateUrl: './apply-job.component.html'
 })
-export class ApplyJobComponent implements OnInit {
+export class ApplyJobComponent implements OnInit, OnDestroy, HasUnsavedChanges {
   job         = signal<JobResponseDto | null>(null);
   selectedFile = signal<File | null>(null);
   loading     = signal(false);
@@ -20,6 +22,8 @@ export class ApplyJobComponent implements OnInit {
   success     = signal(false);
   error       = signal('');
   dragOver    = signal(false);
+
+  private destroy$ = new Subject<void>();
 
   jobId!: number;
 
@@ -32,10 +36,22 @@ export class ApplyJobComponent implements OnInit {
 
   ngOnInit() {
     this.jobId = Number(this.route.snapshot.paramMap.get('id'));
-    this.jobService.getJobById(this.jobId).subscribe({
-      next: j  => { this.job.set(j); this.jobLoading.set(false); },
-      error: () => { this.jobLoading.set(false); }
-    });
+    this.jobService.getJobById(this.jobId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: j  => { this.job.set(j); this.jobLoading.set(false); },
+        error: () => { this.jobLoading.set(false); }
+      });
+  }
+
+  ngOnDestroy() {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
+  hasUnsavedChanges(): boolean {
+    if (this.success()) return false;
+    return this.selectedFile() !== null;
   }
 
   onFileSelect(event: Event) {
@@ -70,13 +86,15 @@ export class ApplyJobComponent implements OnInit {
     this.loading.set(true);
     this.error.set('');
 
-    this.appService.applyForJob(this.jobId, this.selectedFile()!).subscribe({
-      next: () => { this.loading.set(false); this.success.set(true); },
-      error: (err) => {
-        this.loading.set(false);
-        this.error.set(err?.error?.message || 'Application failed. You may have already applied.');
-      }
-    });
+    this.appService.applyForJob(this.jobId, this.selectedFile()!)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => { this.loading.set(false); this.success.set(true); },
+        error: (err) => {
+          this.loading.set(false);
+          this.error.set(err?.error?.message || 'Application failed. You may have already applied.');
+        }
+      });
   }
 
   formatSize(bytes: number): string {

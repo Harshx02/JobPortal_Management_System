@@ -1,4 +1,4 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
@@ -6,6 +6,8 @@ import { NavbarComponent } from '../../../shared/components/navbar/navbar.compon
 import { JobService } from '../../../core/services/job.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { JobRequestDto, JobResponseDto } from '../../../core/models/job.model';
+import { Subject, takeUntil } from 'rxjs';
+import { HasUnsavedChanges } from '../../../core/guards/deactivate.guard';
 
 @Component({
   selector: 'app-post-job',
@@ -13,13 +15,16 @@ import { JobRequestDto, JobResponseDto } from '../../../core/models/job.model';
   imports: [CommonModule, ReactiveFormsModule, NavbarComponent],
   templateUrl: './post-job.component.html'
 })
-export class PostJobComponent implements OnInit {
+export class PostJobComponent implements OnInit, OnDestroy, HasUnsavedChanges {
   form:    FormGroup;
+  submitted = false;
   loading  = signal(false);
   error    = signal('');
   success  = signal('');
   editId   = signal<number | null>(null);
   isEdit   = signal(false);
+
+  private destroy$ = new Subject<void>();
 
   constructor(
     private fb: FormBuilder,
@@ -43,11 +48,23 @@ export class PostJobComponent implements OnInit {
     if (id) {
       this.editId.set(Number(id));
       this.isEdit.set(true);
-      this.jobService.getJobById(Number(id)).subscribe({
-        next: j => this.form.patchValue(j),
-        error: () => this.error.set('Could not load job for editing.')
-      });
+      this.jobService.getJobById(Number(id))
+        .pipe(takeUntil(this.destroy$))
+        .subscribe({
+          next: j => this.form.patchValue(j),
+          error: () => this.error.set('Could not load job for editing.')
+        });
     }
+  }
+
+  ngOnDestroy() {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
+  hasUnsavedChanges(): boolean {
+    if (this.submitted) return false;
+    return this.form.dirty;
   }
 
   submit() {
@@ -61,9 +78,11 @@ export class PostJobComponent implements OnInit {
       ? this.jobService.updateJob(this.editId()!, dto)
       : this.jobService.createJob(dto);
 
-    obs.subscribe({
+    obs.pipe(takeUntil(this.destroy$))
+      .subscribe({
       next: (res) => {
         this.loading.set(false);
+        this.submitted = true;
         this.success.set(this.isEdit() ? 'Job updated successfully!' : 'Job posted successfully!');
         setTimeout(() => this.router.navigate(['/recruiter/dashboard']), 1500);
       },

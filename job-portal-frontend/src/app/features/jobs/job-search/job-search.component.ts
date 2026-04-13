@@ -1,4 +1,4 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup } from '@angular/forms';
@@ -6,15 +6,16 @@ import { NavbarComponent } from '../../../shared/components/navbar/navbar.compon
 import { JobCardComponent } from '../../../shared/components/job-card/job-card.component';
 import { JobService } from '../../../core/services/job.service';
 import { JobResponseDto, JobFilterDto, Page } from '../../../core/models/job.model';
-import { debounceTime, Subject } from 'rxjs';
+import { debounceTime, Subject, takeUntil } from 'rxjs';
+import { PaginationComponent } from '../../../shared/components/pagination/pagination.component';
 
 @Component({
   selector: 'app-job-search',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, NavbarComponent, JobCardComponent],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, NavbarComponent, JobCardComponent, PaginationComponent],
   templateUrl: './job-search.component.html'
 })
-export class JobSearchComponent implements OnInit {
+export class JobSearchComponent implements OnInit, OnDestroy {
   jobs       = signal<JobResponseDto[]>([]);
   totalJobs  = signal(0);
   totalPages = signal(0);
@@ -26,6 +27,7 @@ export class JobSearchComponent implements OnInit {
 
   filterForm: FormGroup;
   private search$ = new Subject<void>();
+  private destroy$ = new Subject<void>();
 
   constructor(
     private jobService: JobService,
@@ -45,7 +47,9 @@ export class JobSearchComponent implements OnInit {
   }
 
   ngOnInit() {
-    this.route.queryParams.subscribe(params => {
+    this.route.queryParams
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(params => {
       if (params['keyword'])  this.filterForm.patchValue({ title: params['keyword'] });
       if (params['skill'])    this.filterForm.patchValue({ skill: params['skill'] });
       if (params['location']) this.filterForm.patchValue({ location: params['location'] });
@@ -53,10 +57,18 @@ export class JobSearchComponent implements OnInit {
     });
 
     // Debounced live search
-    this.search$.pipe(debounceTime(400)).subscribe(() => {
+    this.search$.pipe(
+      debounceTime(400),
+      takeUntil(this.destroy$)
+    ).subscribe(() => {
       this.page.set(0);
       this.doSearch();
     });
+  }
+
+  ngOnDestroy() {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   onFilterChange() { this.search$.next(); }
@@ -66,7 +78,9 @@ export class JobSearchComponent implements OnInit {
     this.error.set('');
     const filter: JobFilterDto = this.buildFilter();
 
-    this.jobService.searchJobs(filter, pg, this.pageSize).subscribe({
+    this.jobService.searchJobs(filter, pg, this.pageSize)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
       next: (res: Page<JobResponseDto>) => {
         this.jobs.set(res.content);
         this.totalJobs.set(res.totalElements);

@@ -1,4 +1,4 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { NavbarComponent } from '../../../shared/components/navbar/navbar.component';
@@ -7,22 +7,32 @@ import { ApplicationService } from '../../../core/services/application.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { JobResponseDto, Page } from '../../../core/models/job.model';
 import { JobApplicationResponse, ApplicationStatus } from '../../../core/models/application.model';
+import { Subject, takeUntil } from 'rxjs';
+import { PaginationComponent } from '../../../shared/components/pagination/pagination.component';
 
 @Component({
   selector: 'app-recruiter-dashboard',
   standalone: true,
-  imports: [CommonModule, NavbarComponent],
+  imports: [CommonModule, NavbarComponent, PaginationComponent],
   templateUrl: './recruiter-dashboard.component.html'
 })
-export class RecruiterDashboardComponent implements OnInit {
+export class RecruiterDashboardComponent implements OnInit, OnDestroy {
   myJobs       = signal<JobResponseDto[]>([]);
+  jobsTotalPages = signal(0);
+  jobsPage       = signal(0);
+  
   applications = signal<JobApplicationResponse[]>([]);
+  appsTotalPages = signal(0);
+  appsPage       = signal(0);
+  
   selectedJobId= signal<number | null>(null);
   loading      = signal(true);
   appsLoading  = signal(false);
   error        = signal('');
   successMsg   = signal('');
   deleteConfirmId = signal<number | null>(null);
+
+  private destroy$ = new Subject<void>();
 
   constructor(
     private jobService: JobService,
@@ -32,20 +42,55 @@ export class RecruiterDashboardComponent implements OnInit {
   ) {}
 
   ngOnInit() {
-    this.jobService.getAllJobs(0, 50).subscribe({
-      next: page => { this.myJobs.set(page.content); this.loading.set(false); },
-      error: ()  => { this.error.set('Could not load jobs.'); this.loading.set(false); }
-    });
+    this.loadJobs();
   }
 
-  viewApplicants(jobId: number) {
+  loadJobs(page = this.jobsPage()) {
+    this.loading.set(true);
+    // Updated JobService already uses true pagination
+    this.jobService.getAllJobs(page, 10)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: res => { 
+          this.myJobs.set(res.content); 
+          this.jobsTotalPages.set(res.totalPages);
+          this.loading.set(false); 
+        },
+        error: ()  => { this.error.set('Could not load jobs.'); this.loading.set(false); }
+      });
+  }
+
+  onJobsPageChange(p: number) {
+    this.jobsPage.set(p);
+    this.loadJobs(p);
+  }
+
+  ngOnDestroy() {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
+  viewApplicants(jobId: number, page = 0) {
     this.selectedJobId.set(jobId);
+    this.appsPage.set(page);
     this.appsLoading.set(true);
-    this.applications.set([]);
-    this.appService.getJobApplications(jobId).subscribe({
-      next: data => { this.applications.set(data); this.appsLoading.set(false); },
-      error: ()  => { this.appsLoading.set(false); }
-    });
+    
+    this.appService.getJobApplications(jobId, page, 5)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: res => { 
+          this.applications.set(res.content); 
+          this.appsTotalPages.set(res.totalPages);
+          this.appsLoading.set(false); 
+        },
+        error: ()  => { this.appsLoading.set(false); }
+      });
+  }
+
+  onAppsPageChange(p: number) {
+    if (this.selectedJobId()) {
+      this.viewApplicants(this.selectedJobId()!, p);
+    }
   }
 
   updateStatus(appId: number, status: ApplicationStatus) {
@@ -59,9 +104,11 @@ export class RecruiterDashboardComponent implements OnInit {
   }
 
   deleteJob(id: number) {
-    this.jobService.deleteJob(id).subscribe({
+    this.jobService.deleteJob(id)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
       next: () => {
-        this.myJobs.update(jobs => jobs.filter(j => j.id !== id));
+        this.loadJobs(); // Refresh page
         this.deleteConfirmId.set(null);
         if (this.selectedJobId() === id) { this.selectedJobId.set(null); this.applications.set([]); }
       }

@@ -1,6 +1,8 @@
 package com.capg.ApplicationService.repository;
 
 import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
@@ -11,10 +13,10 @@ import com.capg.ApplicationService.entity.JobApplication;
 public interface ApplicationRepository extends JpaRepository<JobApplication, Long> {
 
     // Get all applications by user
-    List<JobApplication> findByUserId(Long userId);
+    Page<JobApplication> findByUserId(Long userId, Pageable pageable);
 
     // Get all applications for a job
-    List<JobApplication> findByJobId(Long jobId);
+    Page<JobApplication> findByJobId(Long jobId, Pageable pageable);
 
     // Check if user already applied for a job
     boolean existsByUserIdAndJobId(Long userId, Long jobId);

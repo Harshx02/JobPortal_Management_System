@@ -54,14 +54,16 @@ export const routes: Routes = [
   {
     path: 'apply/:id',
     loadComponent: () => import('./features/applications/apply-job/apply-job.component').then(m => m.ApplyJobComponent),
-    canActivate: [authGuard, roleGuard(['JOB_SEEKER'])]
+    canActivate: [authGuard, roleGuard(['JOB_SEEKER'])],
+    canDeactivate: [deactivateGuard]
   },
 
   // Protected – Profile
   {
     path: 'profile',
     loadComponent: () => import('./features/profile/profile-page/profile-page.component').then(m => m.ProfilePageComponent),
-    canActivate: [authGuard]
+    canActivate: [authGuard],
+    canDeactivate: [deactivateGuard]
   },
 
   // Protected – Job Seeker Dashboard
@@ -82,11 +84,13 @@ export const routes: Routes = [
       },
       {
         path: 'post-job',
-        loadComponent: () => import('./features/recruiter/post-job/post-job.component').then(m => m.PostJobComponent)
+        loadComponent: () => import('./features/recruiter/post-job/post-job.component').then(m => m.PostJobComponent),
+        canDeactivate: [deactivateGuard]
       },
       {
         path: 'edit-job/:id',
-        loadComponent: () => import('./features/recruiter/post-job/post-job.component').then(m => m.PostJobComponent)
+        loadComponent: () => import('./features/recruiter/post-job/post-job.component').then(m => m.PostJobComponent),
+        canDeactivate: [deactivateGuard]
       },
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' }
     ]
@@ -105,6 +109,23 @@ export const routes: Routes = [
     ]
   },
 
+  // Error Pages
+  {
+    path: '403',
+    loadComponent: () => import('./shared/components/error-page/error-page.component').then(m => m.ErrorPageComponent),
+    data: { code: '403', title: 'Forbidden', message: "You don't have permission to be here." }
+  },
+  {
+    path: '404',
+    loadComponent: () => import('./shared/components/error-page/error-page.component').then(m => m.ErrorPageComponent),
+    data: { code: '404', title: 'Not Found', message: "Oops! This page doesn't exist." }
+  },
+  {
+    path: '500',
+    loadComponent: () => import('./shared/components/error-page/error-page.component').then(m => m.ErrorPageComponent),
+    data: { code: '500', title: 'Server Error', message: "Our servers are taking a nap. Try again later." }
+  },
+
   // Wildcard
-  { path: '**', redirectTo: '/home' }
+  { path: '**', redirectTo: '/404' }
 ];

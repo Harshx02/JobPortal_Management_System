@@ -4,12 +4,12 @@ import com.capg.ApplicationService.client.JobClient;
 import com.capg.ApplicationService.client.UserClient;
 import com.capg.ApplicationService.dto.request.ApplicationRequest;
 import com.capg.ApplicationService.dto.response.ApplicationResponse;
+import com.capg.ApplicationService.dto.response.JobApplicationResponse;
 import com.capg.ApplicationService.dto.response.JobResponse;
 import com.capg.ApplicationService.dto.response.UserResponse;
 import com.capg.ApplicationService.entity.JobApplication;
 import com.capg.ApplicationService.enums.ApplicationStatus;
 import com.capg.ApplicationService.exception.ApplicationNotFoundException;
-import com.capg.ApplicationService.exception.DuplicateApplicationException;
 import com.capg.ApplicationService.exception.UnauthorizedException;
 import com.capg.ApplicationService.repository.ApplicationRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -20,7 +20,12 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.modelmapper.ModelMapper;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
@@ -73,8 +78,6 @@ class ApplicationServiceImplTest {
         when(applicationRepository.existsByUserIdAndJobId(anyLong(), anyLong())).thenReturn(false);
         when(applicationRepository.save(any(JobApplication.class))).thenReturn(application);
         when(modelMapper.map(any(), any())).thenReturn(new ApplicationResponse());
-        
-        // Mock user client for events
         when(userClient.getUserById(anyLong(), any())).thenReturn(new UserResponse());
 
         ApplicationResponse response = applicationService.applyForJob(applyReq, 1L, "JOB_SEEKER", "http://resume");
@@ -86,7 +89,7 @@ class ApplicationServiceImplTest {
 
     @Test
     void applyForJob_JobNotFound_ThrowsException() {
-        when(jobClient.getJobById(anyLong())).thenThrow(new RuntimeException("Job not found"));
+        when(jobClient.getJobById(anyLong())).thenThrow(new RuntimeException("Job not found with id"));
 
         assertThatThrownBy(() -> applicationService.applyForJob(applyReq, 1L, "JOB_SEEKER", "url"))
                 .isInstanceOf(RuntimeException.class)
@@ -99,47 +102,48 @@ class ApplicationServiceImplTest {
         when(applicationRepository.existsByUserIdAndJobId(anyLong(), anyLong())).thenReturn(false);
         when(applicationRepository.save(any(JobApplication.class))).thenReturn(application);
         when(modelMapper.map(any(), any())).thenReturn(new ApplicationResponse());
-        
-        // Mock user client failure
         when(userClient.getUserById(anyLong(), any())).thenThrow(new RuntimeException("User service down"));
 
         ApplicationResponse response = applicationService.applyForJob(applyReq, 1L, "JOB_SEEKER", "http://resume");
 
         assertThat(response).isNotNull();
-        // Should succeed even if event fails
         verify(applicationRepository).save(any(JobApplication.class));
     }
 
     @Test
     void getUserApplications_UnauthorizedRole_ThrowsException() {
-        assertThatThrownBy(() -> applicationService.getUserApplications(1L, "RECRUITER"))
+        Pageable pageable = PageRequest.of(0, 10);
+        assertThatThrownBy(() -> applicationService.getUserApplications(1L, "RECRUITER", pageable))
                 .isInstanceOf(UnauthorizedException.class);
     }
 
     @Test
     void getUserApplications_JobClientFailure_ReturnsFallbackJob() {
-        when(applicationRepository.findByUserId(anyLong())).thenReturn(List.of(application));
+        when(applicationRepository.findByUserId(anyLong(), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(Arrays.asList(application)));
         when(modelMapper.map(any(), any())).thenReturn(new ApplicationResponse());
         when(jobClient.getJobById(anyLong())).thenThrow(new RuntimeException("Job service down"));
 
-        List<ApplicationResponse> result = applicationService.getUserApplications(1L, "JOB_SEEKER");
+        Page<ApplicationResponse> result = applicationService.getUserApplications(1L, "JOB_SEEKER", PageRequest.of(0, 10));
 
-        assertThat(result).isNotEmpty();
-        assertThat(result.get(0).getJob().getTitle()).isEqualTo("Job no longer available");
+        assertThat(result.getContent()).isNotEmpty();
+        assertThat(result.getContent().get(0).getJob().getTitle()).isEqualTo("Job no longer available");
     }
 
     @Test
     void getJobApplications_UnauthorizedRole_ThrowsException() {
-        assertThatThrownBy(() -> applicationService.getJobApplications(101L, "JOB_SEEKER", 202L))
+        Pageable pageable = PageRequest.of(0, 10);
+        assertThatThrownBy(() -> applicationService.getJobApplications(101L, "JOB_SEEKER", 202L, pageable))
                 .isInstanceOf(UnauthorizedException.class);
     }
 
     @Test
     void getJobApplications_WrongRecruiter_ThrowsException() {
-        jobResponse.setRecruiterId(999L); // Different recruiter
+        jobResponse.setRecruiterId(999L);
         when(jobClient.getJobById(anyLong())).thenReturn(jobResponse);
+        Pageable pageable = PageRequest.of(0, 10);
 
-        assertThatThrownBy(() -> applicationService.getJobApplications(101L, "RECRUITER", 202L))
+        assertThatThrownBy(() -> applicationService.getJobApplications(101L, "RECRUITER", 202L, pageable))
                 .isInstanceOf(UnauthorizedException.class)
                 .hasMessageContaining("Access Denied! You can view applications for your own jobs");
     }
@@ -147,13 +151,14 @@ class ApplicationServiceImplTest {
     @Test
     void getJobApplications_UserClientFailure_Handled() {
         when(jobClient.getJobById(anyLong())).thenReturn(jobResponse);
-        when(applicationRepository.findByJobId(anyLong())).thenReturn(List.of(application));
+        when(applicationRepository.findByJobId(anyLong(), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(Arrays.asList(application)));
         when(userClient.getUserById(anyLong(), any())).thenThrow(new RuntimeException("User service down"));
 
-        var result = applicationService.getJobApplications(101L, "RECRUITER", 202L);
+        Page<JobApplicationResponse> result = applicationService.getJobApplications(101L, "RECRUITER", 202L, PageRequest.of(0, 10));
 
-        assertThat(result).isNotEmpty();
-        assertThat(result.get(0).getApplicantName()).isEqualTo("N/A");
+        assertThat(result.getContent()).isNotEmpty();
+        assertThat(result.getContent().get(0).getApplicantName()).isEqualTo("N/A");
     }
 
     @Test
@@ -186,8 +191,6 @@ class ApplicationServiceImplTest {
         when(jobClient.getJobById(anyLong())).thenReturn(jobResponse);
         when(applicationRepository.save(any(JobApplication.class))).thenReturn(application);
         when(modelMapper.map(any(), any())).thenReturn(new ApplicationResponse());
-        
-        // Mock client failure for event
         when(userClient.getUserById(anyLong(), any())).thenThrow(new RuntimeException("Down"));
 
         ApplicationResponse response = applicationService.updateStatus(1L, ApplicationStatus.ACCEPTED, 202L, "RECRUITER");
