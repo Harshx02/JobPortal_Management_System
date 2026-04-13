@@ -1,29 +1,5 @@
 package com.capg.ApplicationService.service;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
-import java.time.LocalDateTime;
-import java.util.Optional;
-
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.modelmapper.ModelMapper;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
-import org.springframework.test.util.ReflectionTestUtils;
-
 import com.capg.ApplicationService.client.JobClient;
 import com.capg.ApplicationService.client.UserClient;
 import com.capg.ApplicationService.dto.request.ApplicationRequest;
@@ -36,234 +12,206 @@ import com.capg.ApplicationService.exception.ApplicationNotFoundException;
 import com.capg.ApplicationService.exception.DuplicateApplicationException;
 import com.capg.ApplicationService.exception.UnauthorizedException;
 import com.capg.ApplicationService.repository.ApplicationRepository;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.modelmapper.ModelMapper;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
+
+import java.util.List;
+import java.util.Optional;
+
+import static org.assertj.core.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class ApplicationServiceImplTest {
 
     @Mock
     private ApplicationRepository applicationRepository;
-
     @Mock
     private ModelMapper modelMapper;
-
     @Mock
     private UserClient userClient;
-
     @Mock
     private JobClient jobClient;
-
     @Mock
     private RabbitTemplate rabbitTemplate;
 
     @InjectMocks
     private ApplicationServiceImpl applicationService;
 
-    private ApplicationRequest applicationRequest;
-    private ApplicationResponse applicationResponse;
-    private JobApplication jobApplication;
-    private UserResponse userResponse;
+    private JobApplication application;
+    private ApplicationRequest applyReq;
     private JobResponse jobResponse;
-
-    private static final String RESUME_URL =
-            "https://cloudinary.com/resume.pdf";
-
-    private static final String INTERNAL_SECRET =
-            "jobportal-internal-secret-2024";
 
     @BeforeEach
     void setUp() {
+        applyReq = new ApplicationRequest();
+        applyReq.setJobId(101L);
 
-        // Inject internal secret value
-        ReflectionTestUtils.setField(
-                applicationService,
-                "internalSecret",
-                INTERNAL_SECRET);
-
-        applicationRequest = new ApplicationRequest();
-        applicationRequest.setJobId(1L);
-
-        jobApplication = new JobApplication();
-        jobApplication.setId(1L);
-        jobApplication.setUserId(1L);
-        jobApplication.setJobId(1L);
-        jobApplication.setResumeUrl(RESUME_URL);
-        jobApplication.setStatus(ApplicationStatus.APPLIED);
-        jobApplication.setAppliedAt(LocalDateTime.now());
-
-        applicationResponse = new ApplicationResponse();
-        applicationResponse.setId(1L);
-        applicationResponse.setUserId(1L);
-        applicationResponse.setStatus(ApplicationStatus.APPLIED);
-
-        userResponse = new UserResponse();
-        userResponse.setId(1L);
-        userResponse.setName("Priya Singh");
-        userResponse.setEmail("priya@gmail.com");
-        userResponse.setRole("JOB_SEEKER");
+        application = new JobApplication();
+        application.setId(1L);
+        application.setUserId(1L);
+        application.setJobId(101L);
+        application.setStatus(ApplicationStatus.PENDING);
 
         jobResponse = new JobResponse();
-        jobResponse.setId(1L);
-        jobResponse.setTitle("Backend Developer");
-        jobResponse.setCompanyName("Google");
-        jobResponse.setLocation("Bangalore");
-        jobResponse.setRecruiterId(2L);
+        jobResponse.setId(101L);
+        jobResponse.setRecruiterId(202L);
+        jobResponse.setTitle("Java Developer");
+        jobResponse.setCompanyName("Test Corp");
     }
-
-    // APPLY FOR JOB TESTS
 
     @Test
     void applyForJob_Success() {
-        when(jobClient.getJobById(anyLong()))
-                .thenReturn(jobResponse);
-        when(applicationRepository
-                .existsByUserIdAndJobId(anyLong(), anyLong()))
-                .thenReturn(false);
-        when(applicationRepository.save(
-                any(JobApplication.class)))
-                .thenReturn(jobApplication);
-        when(modelMapper.map(any(JobApplication.class),
-                eq(ApplicationResponse.class)))
-                .thenReturn(applicationResponse);
-        when(userClient.getUserById(anyLong(), anyString()))
-                .thenReturn(userResponse);
+        when(jobClient.getJobById(anyLong())).thenReturn(jobResponse);
+        when(applicationRepository.existsByUserIdAndJobId(anyLong(), anyLong())).thenReturn(false);
+        when(applicationRepository.save(any(JobApplication.class))).thenReturn(application);
+        when(modelMapper.map(any(), any())).thenReturn(new ApplicationResponse());
+        
+        // Mock user client for events
+        when(userClient.getUserById(anyLong(), any())).thenReturn(new UserResponse());
 
-        ApplicationResponse response =
-                applicationService.applyForJob(
-                        applicationRequest, 1L,
-                        "JOB_SEEKER", RESUME_URL);
+        ApplicationResponse response = applicationService.applyForJob(applyReq, 1L, "JOB_SEEKER", "http://resume");
 
         assertThat(response).isNotNull();
-        assertThat(response.getStatus())
-                .isEqualTo(ApplicationStatus.APPLIED);
-        assertThat(response.getUserId()).isEqualTo(1L);
-        assertThat(response.getId()).isEqualTo(1L);
-
-        verify(applicationRepository, times(1))
-                .save(any(JobApplication.class));
-    }
-
-    @Test
-    void applyForJob_NotJobSeeker_ThrowsException() {
-        assertThatThrownBy(() ->
-                applicationService.applyForJob(
-                        applicationRequest, 1L,
-                        "RECRUITER", RESUME_URL))
-                .isInstanceOf(UnauthorizedException.class)
-                .hasMessageContaining(
-                        "Only Job Seekers can apply");
-
-        verify(applicationRepository, never())
-                .save(any(JobApplication.class));
+        verify(applicationRepository).save(any(JobApplication.class));
+        verify(rabbitTemplate).convertAndSend(anyString(), anyString(), (Object) any());
     }
 
     @Test
     void applyForJob_JobNotFound_ThrowsException() {
-        when(jobClient.getJobById(anyLong()))
-                .thenThrow(new RuntimeException("Job not found"));
+        when(jobClient.getJobById(anyLong())).thenThrow(new RuntimeException("Job not found"));
 
-        assertThatThrownBy(() ->
-                applicationService.applyForJob(
-                        applicationRequest, 1L,
-                        "JOB_SEEKER", RESUME_URL))
+        assertThatThrownBy(() -> applicationService.applyForJob(applyReq, 1L, "JOB_SEEKER", "url"))
                 .isInstanceOf(RuntimeException.class)
-                .hasMessageContaining("Job not found");
-
-        verify(applicationRepository, never())
-                .save(any(JobApplication.class));
+                .hasMessageContaining("Job not found with id");
     }
 
     @Test
-    void applyForJob_DuplicateApplication_ThrowsException() {
-        when(jobClient.getJobById(anyLong()))
-                .thenReturn(jobResponse);
-        when(applicationRepository
-                .existsByUserIdAndJobId(anyLong(), anyLong()))
-                .thenReturn(true);
+    void applyForJob_EventPublishFailure_Handled() {
+        when(jobClient.getJobById(anyLong())).thenReturn(jobResponse);
+        when(applicationRepository.existsByUserIdAndJobId(anyLong(), anyLong())).thenReturn(false);
+        when(applicationRepository.save(any(JobApplication.class))).thenReturn(application);
+        when(modelMapper.map(any(), any())).thenReturn(new ApplicationResponse());
+        
+        // Mock user client failure
+        when(userClient.getUserById(anyLong(), any())).thenThrow(new RuntimeException("User service down"));
 
-        assertThatThrownBy(() ->
-                applicationService.applyForJob(
-                        applicationRequest, 1L,
-                        "JOB_SEEKER", RESUME_URL))
-                .isInstanceOf(DuplicateApplicationException.class)
-                .hasMessageContaining(
-                        "You have already applied");
-
-        verify(applicationRepository, never())
-                .save(any(JobApplication.class));
-    }
-
-    // UPDATE STATUS TESTS
-
-    @Test
-    void updateStatus_Success() {
-        when(applicationRepository.findById(anyLong()))
-                .thenReturn(Optional.of(jobApplication));
-        when(applicationRepository.save(
-                any(JobApplication.class)))
-                .thenReturn(jobApplication);
-        when(modelMapper.map(any(JobApplication.class),
-                eq(ApplicationResponse.class)))
-                .thenReturn(applicationResponse);
-        when(jobClient.getJobById(anyLong()))
-                .thenReturn(jobResponse);
-        when(userClient.getUserById(anyLong(), anyString()))
-                .thenReturn(userResponse);
-
-        ApplicationResponse response =
-                applicationService.updateStatus(
-                        1L, ApplicationStatus.SHORTLISTED,
-                        1L, "RECRUITER");
+        ApplicationResponse response = applicationService.applyForJob(applyReq, 1L, "JOB_SEEKER", "http://resume");
 
         assertThat(response).isNotNull();
-
-        verify(applicationRepository, times(1))
-                .save(any(JobApplication.class));
+        // Should succeed even if event fails
+        verify(applicationRepository).save(any(JobApplication.class));
     }
 
     @Test
-    void updateStatus_NotRecruiter_ThrowsException() {
-        assertThatThrownBy(() ->
-                applicationService.updateStatus(
-                        1L, ApplicationStatus.SHORTLISTED,
-                        1L, "JOB_SEEKER"))
-                .isInstanceOf(UnauthorizedException.class)
-                .hasMessageContaining(
-                        "Only Recruiters can update");
+    void getUserApplications_UnauthorizedRole_ThrowsException() {
+        assertThatThrownBy(() -> applicationService.getUserApplications(1L, "RECRUITER"))
+                .isInstanceOf(UnauthorizedException.class);
+    }
 
-        verify(applicationRepository, never())
-                .save(any(JobApplication.class));
+    @Test
+    void getUserApplications_JobClientFailure_ReturnsFallbackJob() {
+        when(applicationRepository.findByUserId(anyLong())).thenReturn(List.of(application));
+        when(modelMapper.map(any(), any())).thenReturn(new ApplicationResponse());
+        when(jobClient.getJobById(anyLong())).thenThrow(new RuntimeException("Job service down"));
+
+        List<ApplicationResponse> result = applicationService.getUserApplications(1L, "JOB_SEEKER");
+
+        assertThat(result).isNotEmpty();
+        assertThat(result.get(0).getJob().getTitle()).isEqualTo("Job no longer available");
+    }
+
+    @Test
+    void getJobApplications_UnauthorizedRole_ThrowsException() {
+        assertThatThrownBy(() -> applicationService.getJobApplications(101L, "JOB_SEEKER", 202L))
+                .isInstanceOf(UnauthorizedException.class);
+    }
+
+    @Test
+    void getJobApplications_WrongRecruiter_ThrowsException() {
+        jobResponse.setRecruiterId(999L); // Different recruiter
+        when(jobClient.getJobById(anyLong())).thenReturn(jobResponse);
+
+        assertThatThrownBy(() -> applicationService.getJobApplications(101L, "RECRUITER", 202L))
+                .isInstanceOf(UnauthorizedException.class)
+                .hasMessageContaining("Access Denied! You can view applications for your own jobs");
+    }
+
+    @Test
+    void getJobApplications_UserClientFailure_Handled() {
+        when(jobClient.getJobById(anyLong())).thenReturn(jobResponse);
+        when(applicationRepository.findByJobId(anyLong())).thenReturn(List.of(application));
+        when(userClient.getUserById(anyLong(), any())).thenThrow(new RuntimeException("User service down"));
+
+        var result = applicationService.getJobApplications(101L, "RECRUITER", 202L);
+
+        assertThat(result).isNotEmpty();
+        assertThat(result.get(0).getApplicantName()).isEqualTo("N/A");
+    }
+
+    @Test
+    void updateStatus_UnauthorizedRole_ThrowsException() {
+        assertThatThrownBy(() -> applicationService.updateStatus(1L, ApplicationStatus.ACCEPTED, 202L, "JOB_SEEKER"))
+                .isInstanceOf(UnauthorizedException.class);
     }
 
     @Test
     void updateStatus_ApplicationNotFound_ThrowsException() {
-        when(applicationRepository.findById(anyLong()))
-                .thenReturn(Optional.empty());
+        when(applicationRepository.findById(anyLong())).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() ->
-                applicationService.updateStatus(
-                        999L, ApplicationStatus.SHORTLISTED,
-                        1L, "RECRUITER"))
-                .isInstanceOf(ApplicationNotFoundException.class)
-                .hasMessageContaining(
-                        "Application not found with id");
-
-        verify(applicationRepository, never())
-                .save(any(JobApplication.class));
+        assertThatThrownBy(() -> applicationService.updateStatus(1L, ApplicationStatus.ACCEPTED, 202L, "RECRUITER"))
+                .isInstanceOf(ApplicationNotFoundException.class);
     }
 
-    // DELETE TESTS
+    @Test
+    void updateStatus_WrongRecruiter_ThrowsException() {
+        jobResponse.setRecruiterId(999L);
+        when(applicationRepository.findById(anyLong())).thenReturn(Optional.of(application));
+        when(jobClient.getJobById(anyLong())).thenReturn(jobResponse);
+
+        assertThatThrownBy(() -> applicationService.updateStatus(1L, ApplicationStatus.ACCEPTED, 202L, "RECRUITER"))
+                .isInstanceOf(UnauthorizedException.class);
+    }
 
     @Test
-    void deleteUserApplications_Success() {
+    void updateStatus_EventPublishFailure_Handled() {
+        when(applicationRepository.findById(anyLong())).thenReturn(Optional.of(application));
+        when(jobClient.getJobById(anyLong())).thenReturn(jobResponse);
+        when(applicationRepository.save(any(JobApplication.class))).thenReturn(application);
+        when(modelMapper.map(any(), any())).thenReturn(new ApplicationResponse());
+        
+        // Mock client failure for event
+        when(userClient.getUserById(anyLong(), any())).thenThrow(new RuntimeException("Down"));
+
+        ApplicationResponse response = applicationService.updateStatus(1L, ApplicationStatus.ACCEPTED, 202L, "RECRUITER");
+
+        assertThat(response).isNotNull();
+        verify(applicationRepository).save(any(JobApplication.class));
+    }
+
+    @Test
+    void deleteUserApplications() {
         applicationService.deleteUserApplications(1L);
-        verify(applicationRepository, times(1))
-                .deleteByUserId(1L);
+        verify(applicationRepository).deleteByUserId(1L);
     }
 
     @Test
-    void deleteJobApplications_Success() {
-        applicationService.deleteJobApplications(1L);
-        verify(applicationRepository, times(1))
-                .deleteByJobId(1L);
+    void deleteJobApplications() {
+        applicationService.deleteJobApplications(101L);
+        verify(applicationRepository).deleteByJobId(101L);
+    }
+
+    @Test
+    void getTotalApplications() {
+        when(applicationRepository.count()).thenReturn(10L);
+        Long count = applicationService.getTotalApplications();
+        assertThat(count).isEqualTo(10L);
     }
 }

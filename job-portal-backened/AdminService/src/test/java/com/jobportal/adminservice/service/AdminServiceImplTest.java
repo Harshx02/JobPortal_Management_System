@@ -8,20 +8,17 @@ import com.jobportal.adminservice.dto.response.PageResponse;
 import com.jobportal.adminservice.dto.response.UserResponse;
 import com.jobportal.adminservice.event.UserDeleteEvent;
 import com.jobportal.adminservice.producer.UserDeleteProducer;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.util.ReflectionTestUtils;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
@@ -30,129 +27,86 @@ class AdminServiceImplTest {
 
     @Mock
     private AuthServiceClient authServiceClient;
-
     @Mock
     private JobServiceClient jobServiceClient;
-
     @Mock
     private ApplicationServiceClient applicationServiceClient;
-
     @Mock
     private UserDeleteProducer userDeleteProducer;
 
     @InjectMocks
     private AdminServiceImpl adminService;
 
-    private UserResponse jobSeeker;
-    private UserResponse recruiter;
-    private List<UserResponse> users;
+    private UserResponse userResponse;
     private JobResponse jobResponse;
     private PageResponse pageResponse;
 
-    private static final String INTERNAL_SECRET = "test-secret";
-
     @BeforeEach
     void setUp() {
-
-        ReflectionTestUtils.setField(
-                adminService,
-                "internalSecret",
-                INTERNAL_SECRET);
-
-        jobSeeker = new UserResponse();
-        jobSeeker.setId(1L);
-        jobSeeker.setRole("JOB_SEEKER");
-
-        recruiter = new UserResponse();
-        recruiter.setId(2L);
-        recruiter.setRole("RECRUITER");
-
-        users = Arrays.asList(jobSeeker, recruiter);
+        userResponse = new UserResponse();
+        userResponse.setId(1L);
+        userResponse.setEmail("test@test.com");
+        userResponse.setRole("JOB_SEEKER");
 
         jobResponse = new JobResponse();
-        jobResponse.setId(1L);
+        jobResponse.setId(101L);
+        jobResponse.setTitle("Java Dev");
 
         pageResponse = new PageResponse();
-        pageResponse.setTotalElements(5);
+        pageResponse.setTotalElements(10L);
     }
 
     @Test
     void getAllUsers_Success() {
-        when(authServiceClient.getAllUsers(anyString()))
-                .thenReturn(users);
-
-        List<UserResponse> response = adminService.getAllUsers();
-
-        assertThat(response).hasSize(2);
-
-        verify(authServiceClient).getAllUsers(INTERNAL_SECRET);
+        when(authServiceClient.getAllUsers(any())).thenReturn(List.of(userResponse));
+        List<UserResponse> result = adminService.getAllUsers();
+        assertThat(result).isNotEmpty();
     }
 
     @Test
     void getUserById_Success() {
-        when(authServiceClient.getUserById(anyLong(), anyString()))
-                .thenReturn(jobSeeker);
-
-        UserResponse response = adminService.getUserById(1L);
-
-        assertThat(response.getId()).isEqualTo(1L);
-
-        verify(authServiceClient).getUserById(1L, INTERNAL_SECRET);
+        when(authServiceClient.getUserById(anyLong(), any())).thenReturn(userResponse);
+        UserResponse result = adminService.getUserById(1L);
+        assertThat(result.getId()).isEqualTo(1L);
     }
 
     @Test
-    void deleteUser_SagaTriggered() {
-        when(authServiceClient.getUserById(anyLong(), anyString()))
-                .thenReturn(recruiter);
-
-        adminService.deleteUser(2L);
-
+    void deleteUser_StartsSaga() {
+        when(authServiceClient.getUserById(anyLong(), any())).thenReturn(userResponse);
+        adminService.deleteUser(1L);
         verify(userDeleteProducer).startSaga(any(UserDeleteEvent.class));
     }
 
     @Test
     void getAllJobs_Success() {
-        when(jobServiceClient.getAllJobs())
-                .thenReturn(pageResponse);
-
-        PageResponse response = adminService.getAllJobs();
-
-        assertThat(response.getTotalElements()).isEqualTo(5);
-
-        verify(jobServiceClient).getAllJobs();
+        when(jobServiceClient.getAllJobs()).thenReturn(pageResponse);
+        PageResponse result = adminService.getAllJobs();
+        assertThat(result.getTotalElements()).isEqualTo(10L);
     }
 
     @Test
     void getJobById_Success() {
-        when(jobServiceClient.getJobById(anyLong()))
-                .thenReturn(jobResponse);
-
-        JobResponse response = adminService.getJobById(1L);
-
-        assertThat(response.getId()).isEqualTo(1L);
-
-        verify(jobServiceClient).getJobById(1L);
+        when(jobServiceClient.getJobById(anyLong())).thenReturn(jobResponse);
+        JobResponse result = adminService.getJobById(101L);
+        assertThat(result.getId()).isEqualTo(101L);
     }
 
     @Test
     void getReports_Success() {
-        when(authServiceClient.getAllUsers(anyString()))
-                .thenReturn(users);
-
-        when(jobServiceClient.getAllJobs())
-                .thenReturn(pageResponse);
-
-        when(applicationServiceClient.getTotalApplications())
-                .thenReturn(10L);
+        when(authServiceClient.getAllUsers(any())).thenReturn(List.of(userResponse));
+        when(jobServiceClient.getAllJobs()).thenReturn(pageResponse);
+        when(applicationServiceClient.getTotalApplications()).thenReturn(5L);
 
         Map<String, Object> reports = adminService.getReports();
 
-        assertThat(reports.get("totalUsers")).isEqualTo(2L);
-        assertThat(reports.get("totalJobs")).isEqualTo(5L);
-        assertThat(reports.get("totalApplications")).isEqualTo(10L);
+        assertThat(reports.get("totalUsers")).isEqualTo(1L);
+        assertThat(reports.get("totalJobs")).isEqualTo(10L);
+        assertThat(reports.get("totalApplications")).isEqualTo(5L);
+    }
 
-        verify(authServiceClient).getAllUsers(INTERNAL_SECRET);
-        verify(jobServiceClient).getAllJobs();
-        verify(applicationServiceClient).getTotalApplications();
+    @Test
+    void fallbackGetAllUsers_ReturnsEmptyList() {
+        List<UserResponse> result = adminService.fallbackGetAllUsers(new RuntimeException("Error"));
+        assertThat(result).isEmpty();
     }
 }

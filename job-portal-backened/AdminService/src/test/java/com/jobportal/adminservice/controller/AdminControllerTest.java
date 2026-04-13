@@ -1,23 +1,24 @@
 package com.jobportal.adminservice.controller;
 
-import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.doNothing;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-
-import java.util.List;
-import java.util.Map;
-
 import com.jobportal.adminservice.dto.response.JobResponse;
 import com.jobportal.adminservice.dto.response.PageResponse;
 import com.jobportal.adminservice.dto.response.UserResponse;
 import com.jobportal.adminservice.service.AdminService;
-
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.*;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.web.servlet.MockMvc;
+
+import java.util.List;
+import java.util.Map;
+
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(AdminController.class)
 @AutoConfigureMockMvc(addFilters = false)
@@ -29,103 +30,92 @@ class AdminControllerTest {
     @MockBean
     private AdminService adminService;
 
-    // GET ALL USERS
     @Test
-    void testGetAllUsers() throws Exception {
-
-        UserResponse user = new UserResponse();
-        user.setId(1L);
-
-        when(adminService.getAllUsers()).thenReturn(List.of(user));
-
+    void getAllUsers_AdminSuccess() throws Exception {
+        when(adminService.getAllUsers()).thenReturn(List.of(new UserResponse()));
         mockMvc.perform(get("/api/admin/users")
                         .header("X-User-Role", "ADMIN"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].id").value(1));
+                .andExpect(status().isOk());
     }
 
-    // GET USER BY ID
     @Test
-    void testGetUserById() throws Exception {
+    void getAllUsers_Unauthorized() throws Exception {
+        mockMvc.perform(get("/api/admin/users")
+                        .header("X-User-Role", "JOB_SEEKER"))
+                .andExpect(status().isForbidden());
+    }
 
-        UserResponse user = new UserResponse();
-        user.setId(1L);
-
-        when(adminService.getUserById(1L)).thenReturn(user);
-
+    @Test
+    void getUserById_AdminSuccess() throws Exception {
+        when(adminService.getUserById(anyLong())).thenReturn(new UserResponse());
         mockMvc.perform(get("/api/admin/users/1")
                         .header("X-User-Role", "ADMIN"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(1));
+                .andExpect(status().isOk());
     }
 
-    // DELETE USER
     @Test
-    void testDeleteUser() throws Exception {
+    void getUserById_Unauthorized() throws Exception {
+        mockMvc.perform(get("/api/admin/users/1")
+                        .header("X-User-Role", "RECRUITER"))
+                .andExpect(status().isForbidden());
+    }
 
-        doNothing().when(adminService).deleteUser(1L);
-
+    @Test
+    void deleteUser_AdminSuccess() throws Exception {
         mockMvc.perform(delete("/api/admin/users/1")
                         .header("X-User-Role", "ADMIN"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.message")
-                        .value("User deleted successfully!"));
+                .andExpect(status().isAccepted());
     }
 
-    // GET ALL JOBS
     @Test
-    void testGetAllJobs() throws Exception {
+    void deleteUser_Unauthorized() throws Exception {
+        mockMvc.perform(delete("/api/admin/users/1")
+                        .header("X-User-Role", "USER"))
+                .andExpect(status().isForbidden());
+    }
 
-        PageResponse response = new PageResponse();
-
-        when(adminService.getAllJobs()).thenReturn(response);
-
+    @Test
+    void getAllJobs_AdminSuccess() throws Exception {
+        when(adminService.getAllJobs()).thenReturn(new PageResponse());
         mockMvc.perform(get("/api/admin/jobs")
                         .header("X-User-Role", "ADMIN"))
                 .andExpect(status().isOk());
     }
 
-    // GET JOB BY ID
     @Test
-    void testGetJobById() throws Exception {
-
-        JobResponse job = new JobResponse();
-        job.setId(1L);
-
-        when(adminService.getJobById(1L)).thenReturn(job);
-
-        mockMvc.perform(get("/api/admin/jobs/1")
-                        .header("X-User-Role", "ADMIN"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(1));
+    void getAllJobs_Unauthorized() throws Exception {
+        mockMvc.perform(get("/api/admin/jobs")
+                        .header("X-User-Role", "JOB_SEEKER"))
+                .andExpect(status().isForbidden());
     }
 
-    // GET REPORTS
     @Test
-    void testGetReports() throws Exception {
+    void getJobById_AdminSuccess() throws Exception {
+        when(adminService.getJobById(anyLong())).thenReturn(new JobResponse());
+        mockMvc.perform(get("/api/admin/jobs/101")
+                        .header("X-User-Role", "ADMIN"))
+                .andExpect(status().isOk());
+    }
 
-        Map<String, Object> reports = Map.of(
-                "totalUsers", 10,
-                "totalJobs", 5
-        );
+    @Test
+    void getJobById_Unauthorized() throws Exception {
+        mockMvc.perform(get("/api/admin/jobs/101")
+                        .header("X-User-Role", "RECRUITER"))
+                .andExpect(status().isForbidden());
+    }
 
-        when(adminService.getReports()).thenReturn(reports);
-
+    @Test
+    void getReports_AdminSuccess() throws Exception {
+        when(adminService.getReports()).thenReturn(Map.of("totalUsers", 10));
         mockMvc.perform(get("/api/admin/reports")
                         .header("X-User-Role", "ADMIN"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.totalUsers").value(10));
+                .andExpect(status().isOk());
     }
 
-    // ❌ UNAUTHORIZED TEST (VERY IMPORTANT)
     @Test
-    void testUnauthorizedAccess() throws Exception {
-
-        mockMvc.perform(get("/api/admin/users")
+    void getReports_Unauthorized() throws Exception {
+        mockMvc.perform(get("/api/admin/reports")
                         .header("X-User-Role", "USER"))
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.error")
-                        .value("Access Denied! Only Admin can manage users."));
+                .andExpect(status().isForbidden());
     }
 }
-

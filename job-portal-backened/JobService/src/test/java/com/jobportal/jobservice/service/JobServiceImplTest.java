@@ -4,8 +4,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -21,7 +23,9 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.modelmapper.ModelMapper;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 
+import com.jobportal.jobservice.dto.JobFilterDto;
 import com.jobportal.jobservice.dto.JobRequestDto;
 import com.jobportal.jobservice.dto.JobResponseDto;
 import com.jobportal.jobservice.entity.Job;
@@ -40,6 +44,8 @@ class JobServiceImplTest {
     @Mock
     private ModelMapper modelMapper;
 
+    @Mock
+    private RabbitTemplate rabbitTemplate;
 
     // InjectMocks — class we are testing
     @InjectMocks
@@ -118,6 +124,26 @@ class JobServiceImplTest {
     }
 
     @Test
+    void createJob_RabbitMQFailure_Handled() {
+        // Arrange
+        when(modelMapper.map(any(JobRequestDto.class), eq(Job.class))).thenReturn(job);
+        when(jobRepository.save(any(Job.class))).thenReturn(job);
+        when(modelMapper.map(any(Job.class), eq(JobResponseDto.class))).thenReturn(jobResponseDto);
+        
+        // Mock rabbitMQ failure
+        org.springframework.amqp.AmqpException amqpException = new org.springframework.amqp.AmqpException("Connection Refused");
+        org.mockito.Mockito.doThrow(amqpException).when(rabbitTemplate).convertAndSend(anyString(), anyString(), any(Object.class));
+
+        // Act
+        JobResponseDto response = jobService.createJob(jobRequestDto, 1L, "RECRUITER");
+
+        // Assert
+        assertThat(response).isNotNull();
+        // Method should continue even if RabbitMQ fails
+        verify(jobRepository, times(1)).save(any(Job.class));
+    }
+
+    @Test
     void createJob_NotRecruiter_ThrowsException() {
         // Act & Assert
         assertThatThrownBy(() ->
@@ -130,6 +156,45 @@ class JobServiceImplTest {
         // Verify save was never called
         verify(jobRepository, never())
                 .save(any(Job.class));
+    }
+
+    @Test
+    void createJob_NullDto_ThrowsException() {
+        // Act & Assert
+        assertThatThrownBy(() ->
+                jobService.createJob(null, 1L, "RECRUITER"))
+                .isInstanceOf(NullPointerException.class);
+    }
+
+    @Test
+    void createJob_EmptyTitle_BoundaryValue() {
+        // Arrange
+        jobRequestDto.setTitle(""); // Boundary: Empty string
+        when(modelMapper.map(any(JobRequestDto.class), eq(Job.class))).thenReturn(job);
+        when(jobRepository.save(any(Job.class))).thenReturn(job);
+        when(modelMapper.map(any(Job.class), eq(JobResponseDto.class))).thenReturn(jobResponseDto);
+
+        // Act
+        JobResponseDto response = jobService.createJob(jobRequestDto, 1L, "RECRUITER");
+
+        // Assert
+        assertThat(response).isNotNull();
+        verify(jobRepository, times(1)).save(any(Job.class));
+    }
+
+    @Test
+    void createJob_ZeroSalary_BoundaryValue() {
+        // Arrange
+        jobRequestDto.setSalary(0.0); // Boundary: Zero value
+        when(modelMapper.map(any(JobRequestDto.class), eq(Job.class))).thenReturn(job);
+        when(jobRepository.save(any(Job.class))).thenReturn(job);
+        when(modelMapper.map(any(Job.class), eq(JobResponseDto.class))).thenReturn(jobResponseDto);
+
+        // Act
+        JobResponseDto response = jobService.createJob(jobRequestDto, 1L, "RECRUITER");
+
+        // Assert
+        assertThat(response).isNotNull();
     }
 
     // GET JOB BY ID TESTS
@@ -174,7 +239,6 @@ class JobServiceImplTest {
         when(jobRepository.findById(anyLong()))
                 .thenReturn(Optional.of(job));
 
-        // ← Add this — mock the map(dto, job) call
         doNothing().when(modelMapper)
                 .map(any(JobRequestDto.class), any(Job.class));
 
@@ -193,15 +257,13 @@ class JobServiceImplTest {
         assertThat(response.getTitle())
                 .isEqualTo("Backend Developer");
 
-        // Verify save was called
         verify(jobRepository, times(1))
                 .save(any(Job.class));
     }
 
     @Test
     void updateJob_Unauthorized_ThrowsException() {
-        // Arrange — job belongs to recruiter 1
-        // but recruiter 2 is trying to update
+        // Arrange
         when(jobRepository.findById(anyLong()))
                 .thenReturn(Optional.of(job));
 
@@ -212,7 +274,6 @@ class JobServiceImplTest {
                 .hasMessageContaining(
                         "You are not allowed to update");
 
-        // Verify save was never called
         verify(jobRepository, never())
                 .save(any(Job.class));
     }
@@ -230,7 +291,14 @@ class JobServiceImplTest {
                 .hasMessageContaining("Job not found with id");
     }
 
-  
+    @Test
+    void updateJob_NegativeId_ExceptionHandling() {
+        // Act & Assert
+        assertThatThrownBy(() ->
+                jobService.updateJob(-1L, jobRequestDto, 1L))
+                .isInstanceOf(JobNotFoundException.class);
+    }
+
     // DELETE JOB TESTS
 
     @Test
@@ -242,15 +310,13 @@ class JobServiceImplTest {
         // Act
         jobService.deleteJob(1L, 1L);
 
-        // Verify delete was called
         verify(jobRepository, times(1))
                 .delete(any(Job.class));
     }
 
     @Test
     void deleteJob_Unauthorized_ThrowsException() {
-        // Arrange — job belongs to recruiter 1
-        // but recruiter 2 is trying to delete
+        // Arrange
         when(jobRepository.findById(anyLong()))
                 .thenReturn(Optional.of(job));
 
@@ -261,7 +327,6 @@ class JobServiceImplTest {
                 .hasMessageContaining(
                         "You are not allowed to delete");
 
-        // Verify delete was never called
         verify(jobRepository, never())
                 .delete(any(Job.class));
     }
@@ -277,5 +342,65 @@ class JobServiceImplTest {
                 jobService.deleteJob(999L, 1L))
                 .isInstanceOf(JobNotFoundException.class)
                 .hasMessageContaining("Job not found with id");
+    }
+
+    // LISTING & SEARCH TESTS
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void getAllJobs_Ascending_Success() {
+        // Arrange
+        org.springframework.data.domain.Page<Job> mockPage = mock(org.springframework.data.domain.Page.class);
+        when(jobRepository.findAll(any(org.springframework.data.domain.Pageable.class))).thenReturn(mockPage);
+        when(mockPage.map(any())).thenReturn(mock(org.springframework.data.domain.Page.class));
+
+        // Act
+        jobService.getAllJobs(0, 10, "title", "asc");
+
+        // Assert
+        verify(jobRepository).findAll(any(org.springframework.data.domain.Pageable.class));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void getAllJobs_Descending_Success() {
+        // Arrange
+        org.springframework.data.domain.Page<Job> mockPage = mock(org.springframework.data.domain.Page.class);
+        when(jobRepository.findAll(any(org.springframework.data.domain.Pageable.class))).thenReturn(mockPage);
+        when(mockPage.map(any())).thenReturn(mock(org.springframework.data.domain.Page.class));
+
+        // Act
+        jobService.getAllJobs(0, 10, "title", "desc");
+
+        // Assert
+        verify(jobRepository).findAll(any(org.springframework.data.domain.Pageable.class));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void searchJobs_Success() {
+        // Arrange
+        JobFilterDto filter = new JobFilterDto();
+        filter.setTitle("Java");
+        org.springframework.data.domain.Page<Job> mockPage = mock(org.springframework.data.domain.Page.class);
+        
+        when(jobRepository.findAll(any(org.springframework.data.jpa.domain.Specification.class), any(org.springframework.data.domain.Pageable.class)))
+            .thenReturn(mockPage);
+        when(mockPage.map(any())).thenReturn(mock(org.springframework.data.domain.Page.class));
+
+        // Act
+        jobService.searchJobs(filter, 0, 10, "createdAt", "desc");
+
+        // Assert
+        verify(jobRepository).findAll(any(org.springframework.data.jpa.domain.Specification.class), any(org.springframework.data.domain.Pageable.class));
+    }
+
+    @Test
+    void deleteRecruiterJobs_Success() {
+        // Act
+        jobService.deleteRecruiterJobs(1L);
+
+        // Assert
+        verify(jobRepository).deleteByRecruiterId(1L);
     }
 }

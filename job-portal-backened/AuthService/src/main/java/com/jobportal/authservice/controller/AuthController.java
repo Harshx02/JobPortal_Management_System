@@ -177,4 +177,26 @@ public class AuthController {
         authService.resetPassword(request.getEmail(), request.getNewPassword());
         return ResponseEntity.ok("Password reset successful!");
     }
+
+    @org.springframework.web.bind.annotation.DeleteMapping("/users/{id}")
+    public ResponseEntity<java.util.Map<String, String>> deleteUser(
+            @PathVariable Long id,
+            @RequestHeader(value = "X-User-Role", required = false) String role,
+            @RequestHeader(value = "X-Internal-Secret", required = false) String secret) {
+
+        log.info("Delete user API called | targetId: {} | role: {}", id, role);
+
+        // ✅ Security check: Allow if ADMIN or valid Internal Secret
+        if ((role != null && role.equalsIgnoreCase("ADMIN")) ||
+                (secret != null && secret.equals(internalSecret))) {
+
+            authService.deleteUser(id);
+            java.util.Map<String, String> response = new java.util.HashMap<>();
+            response.put("message", "User deleted successfully!");
+            return ResponseEntity.ok(response);
+        }
+
+        log.warn("Unauthorized delete attempt | targetId: {} | role: {}", id, role);
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+    }
 }

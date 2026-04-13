@@ -1,9 +1,7 @@
 package com.jobportal.authservice.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.jobportal.authservice.dto.request.LoginRequest;
-import com.jobportal.authservice.dto.request.RegisterRequest;
-import com.jobportal.authservice.dto.request.UpdateProfileRequest;
+import com.jobportal.authservice.dto.request.*;
 import com.jobportal.authservice.dto.response.AuthResponse;
 import com.jobportal.authservice.dto.response.UserResponse;
 import com.jobportal.authservice.enums.UserRole;
@@ -46,7 +44,6 @@ class AuthControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
-    // REGISTER
     @Test
     void testRegister() throws Exception {
         RegisterRequest request = new RegisterRequest();
@@ -55,11 +52,7 @@ class AuthControllerTest {
         request.setPassword("123456");
         request.setRole(UserRole.JOB_SEEKER);
 
-        AuthResponse response = new AuthResponse(
-                "token", "Prateek", "test@gmail.com",
-                UserRole.JOB_SEEKER, "Registration successful!"
-        );
-
+        AuthResponse response = new AuthResponse("token", "Prateek", "test@gmail.com", UserRole.JOB_SEEKER, "Registration successful!");
         when(authService.register(request)).thenReturn(response);
 
         mockMvc.perform(post("/api/auth/register")
@@ -69,18 +62,13 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.email").value("test@gmail.com"));
     }
 
-    // LOGIN
     @Test
     void testLogin() throws Exception {
         LoginRequest request = new LoginRequest();
         request.setEmail("test@gmail.com");
         request.setPassword("123456");
 
-        AuthResponse response = new AuthResponse(
-                "token", "Prateek", "test@gmail.com",
-                UserRole.JOB_SEEKER, "Login successful!"
-        );
-
+        AuthResponse response = new AuthResponse("token", "Prateek", "test@gmail.com", UserRole.JOB_SEEKER, "Login successful!");
         when(authService.login(request)).thenReturn(response);
 
         mockMvc.perform(post("/api/auth/login")
@@ -90,7 +78,6 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.email").value("test@gmail.com"));
     }
 
-    // GET PROFILE
     @Test
     void testGetProfile() throws Exception {
         UserResponse user = new UserResponse();
@@ -105,7 +92,6 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.email").value("test@gmail.com"));
     }
 
-    // GET ALL USERS
     @Test
     void testGetAllUsers() throws Exception {
         UserResponse user = new UserResponse();
@@ -114,12 +100,11 @@ class AuthControllerTest {
 
         when(authService.getAllUsers()).thenReturn(List.of(user));
 
-        mockMvc.perform(get("/api/auth/users"))
+        mockMvc.perform(get("/api/auth/users").header("X-User-Role", "ADMIN"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].email").value("test@gmail.com"));
     }
 
-    // GET USER BY ID
     @Test
     void testGetUserById() throws Exception {
         UserResponse user = new UserResponse();
@@ -128,12 +113,11 @@ class AuthControllerTest {
 
         when(authService.getUserById(1L)).thenReturn(user);
 
-        mockMvc.perform(get("/api/auth/users/1"))
+        mockMvc.perform(get("/api/auth/users/1").header("X-User-Id", 1L))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.email").value("test@gmail.com"));
     }
 
-    // UPDATE PROFILE
     @Test
     void testUpdateProfile() throws Exception {
         UpdateProfileRequest request = new UpdateProfileRequest();
@@ -152,30 +136,68 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.name").value("Updated"));
     }
 
-    // DELETE USER
     @Test
     void testDeleteUser() throws Exception {
         doNothing().when(authService).deleteUser(1L);
 
-        mockMvc.perform(delete("/api/auth/users/1"))
+        mockMvc.perform(delete("/api/auth/users/1").header("X-User-Role", "ADMIN"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.message").value("User deleted successfully!"));
     }
 
-    // UPLOAD PROFILE IMAGE
+    @Test
+    void testForgotPassword() throws Exception {
+        ForgotPasswordRequest request = new ForgotPasswordRequest();
+        request.setEmail("test@gmail.com");
+
+        doNothing().when(authService).forgotPassword("test@gmail.com");
+
+        mockMvc.perform(post("/api/auth/forgot-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(content().string("OTP sent to your email!"));
+    }
+
+    @Test
+    void testVerifyOtp() throws Exception {
+        VerifyOtpRequest request = new VerifyOtpRequest();
+        request.setEmail("test@gmail.com");
+        request.setOtp("123456");
+
+        when(authService.verifyOtp("test@gmail.com", "123456")).thenReturn(true);
+
+        mockMvc.perform(post("/api/auth/verify-otp")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(content().string("OTP Verified!"));
+    }
+
+    @Test
+    void testResetPassword() throws Exception {
+        ResetPasswordRequest request = new ResetPasswordRequest();
+        request.setEmail("test@gmail.com");
+        request.setNewPassword("newpass");
+
+        doNothing().when(authService).resetPassword("test@gmail.com", "newpass");
+
+        mockMvc.perform(post("/api/auth/reset-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(content().string("Password reset successful!"));
+    }
+
     @Test
     void testUploadProfileImage() throws Exception {
-        MockMultipartFile file =
-                new MockMultipartFile("image", "test.jpg",
-                        MediaType.IMAGE_JPEG_VALUE, "image".getBytes());
-
+        MockMultipartFile file = new MockMultipartFile("image", "test.jpg", MediaType.IMAGE_JPEG_VALUE, "image".getBytes());
         UserResponse response = new UserResponse();
         response.setId(1L);
 
         when(authService.uploadProfileImage(1L, file)).thenReturn(response);
 
-        mockMvc.perform(multipart("/api/auth/users/1/profile-image")
-                        .file(file))
+        mockMvc.perform(multipart("/api/auth/users/1/profile-image").file(file))
                 .andExpect(status().isOk());
     }
 }
