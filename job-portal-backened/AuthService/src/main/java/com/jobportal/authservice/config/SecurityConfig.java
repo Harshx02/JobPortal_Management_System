@@ -48,8 +48,9 @@ public class SecurityConfig {
                     ).permitAll()
                 
                 // Allow internal service calls
-                // Security handled by X-Internal-Secret in JwtAuthFilter
+                // Security handled by X-Internal-Secret in JwtAuthFilter and AuthController
                 .requestMatchers("/api/auth/users/**").permitAll()
+                .requestMatchers("/api/auth/count").permitAll()
                 
                 // PROTECTED — token required for everything else
                 .anyRequest().authenticated()

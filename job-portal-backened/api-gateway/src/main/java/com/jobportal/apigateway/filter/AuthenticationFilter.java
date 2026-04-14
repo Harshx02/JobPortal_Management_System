@@ -47,6 +47,11 @@ public class AuthenticationFilter extends
 
             ServerHttpRequest request = exchange.getRequest();
 
+            // Bypass security for OPTIONS requests (CORS Preflight)
+            if (org.springframework.http.HttpMethod.OPTIONS.equals(request.getMethod())) {
+                return chain.filter(exchange);
+            }
+
             // Step 1: Check Authorization header exists
             if (!request.getHeaders()
                     .containsKey(HttpHeaders.AUTHORIZATION)) {

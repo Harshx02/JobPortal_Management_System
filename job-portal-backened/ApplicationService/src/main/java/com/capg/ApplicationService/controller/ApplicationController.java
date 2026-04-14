@@ -37,7 +37,6 @@ import lombok.extern.slf4j.Slf4j;
 @RestController
 @RequestMapping("/api/applications")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 public class ApplicationController {
 
     private final ApplicationService service;
