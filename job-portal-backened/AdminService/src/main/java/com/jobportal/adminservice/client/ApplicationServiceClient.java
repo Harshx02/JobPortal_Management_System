@@ -10,6 +10,6 @@ public interface ApplicationServiceClient {
     Long getTotalApplications();
 
     @GetMapping("/api/applications/count-by-status")
-    Long getCountByStatus(@org.springframework.web.bind.annotation.RequestParam String status,
-            @org.springframework.web.bind.annotation.RequestParam boolean monthly);
+    Long getCountByStatus(@org.springframework.web.bind.annotation.RequestParam("status") String status,
+            @org.springframework.web.bind.annotation.RequestParam("monthly") boolean monthly);
 }
