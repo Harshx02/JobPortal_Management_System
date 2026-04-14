@@ -21,4 +21,8 @@ public interface AuthServiceClient {
     @GetMapping("/api/auth/users/{id}")
     UserResponse getUserById(@PathVariable Long id,
                             @RequestHeader("X-Internal-Secret") String secret);
+
+    @GetMapping("/api/auth/count")
+    Long countUsersByRole(@org.springframework.web.bind.annotation.RequestParam String role,
+                         @RequestHeader("X-Internal-Secret") String secret);
 }

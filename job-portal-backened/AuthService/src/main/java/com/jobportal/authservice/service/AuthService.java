@@ -39,4 +39,6 @@ public interface AuthService {
     boolean verifyOtp(String email, String otp);
     
     void resetPassword(String email, String newPassword);
+
+    Long countUsersByRole(String role);
 }

@@ -24,4 +24,6 @@ public interface ApplicationService {
     void deleteJobApplications(Long jobId);
 
     Long getTotalApplications();
+
+    Long getCountByStatus(com.capg.ApplicationService.enums.ApplicationStatus status, boolean monthly);
 }

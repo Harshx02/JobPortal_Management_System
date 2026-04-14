@@ -22,6 +22,10 @@ export class JobService {
     return this.http.get<JobResponseDto>(`${this.apiUrl}/${id}`);
   }
 
+  getPublicStats(): Observable<any> {
+    return this.http.get<any>(`${environment.apiUrl}/api/admin/public/stats`);
+  }
+
   searchJobs(
     filter: JobFilterDto,
     page = 0, size = 9,

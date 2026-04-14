@@ -199,4 +199,20 @@ public class AuthController {
         log.warn("Unauthorized delete attempt | targetId: {} | role: {}", id, role);
         return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
     }
+
+    @GetMapping("/count")
+    public ResponseEntity<Long> countUsersByRole(
+            @RequestParam String role,
+            @RequestHeader(value = "X-Internal-Secret", required = false) String secret) {
+
+        log.info("Count users by role API called | role: {} | secret: {}", role, secret != null ? "PRESENT" : "MISSING");
+
+        if (secret != null && secret.equals(internalSecret)) {
+            Long count = authService.countUsersByRole(role);
+            return ResponseEntity.ok(count);
+        }
+
+        log.warn("Unauthorized access to countUsersByRole");
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+    }
 }

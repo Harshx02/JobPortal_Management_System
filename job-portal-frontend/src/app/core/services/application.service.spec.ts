@@ -41,27 +41,40 @@ describe('ApplicationService', () => {
   });
 
   it('should get user applications', () => {
-    const mockApps: Partial<ApplicationResponse>[] = [{ id: 1, status: 'PENDING' }];
+    const mockPage = {
+      content: [{ id: 1, status: 'PENDING' }],
+      totalElements: 1,
+      totalPages: 1,
+      size: 10,
+      number: 0
+    };
 
     service.getUserApplications().subscribe(res => {
-      expect(res.length).toBe(1);
+      expect(res.content.length).toBe(1);
+      expect(res.totalElements).toBe(1);
     });
 
-    const req = httpMock.expectOne(`${apiUrl}/user/viewApplications`);
+    const req = httpMock.expectOne(req => req.url === `${apiUrl}/user/viewApplications`);
     expect(req.request.method).toBe('GET');
-    req.flush(mockApps);
+    req.flush(mockPage);
   });
 
   it('should get job applications by jobId', () => {
-    const mockApps: Partial<JobApplicationResponse>[] = [{ id: 1, applicantName: 'John' }];
+    const mockPage = {
+      content: [{ id: 1, applicantName: 'John' }],
+      totalElements: 1,
+      totalPages: 1,
+      size: 10,
+      number: 0
+    };
 
     service.getJobApplications(101).subscribe(res => {
-      expect(res[0].applicantName).toBe('John');
+      expect(res.content[0].applicantName).toBe('John');
     });
 
-    const req = httpMock.expectOne(`${apiUrl}/jobApplications/101`);
+    const req = httpMock.expectOne(req => req.url.includes(`${apiUrl}/jobApplications/101`));
     expect(req.request.method).toBe('GET');
-    req.flush(mockApps);
+    req.flush(mockPage);
   });
 
   it('should update application status using PATCH', () => {

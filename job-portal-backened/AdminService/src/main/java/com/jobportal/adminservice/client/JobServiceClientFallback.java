@@ -30,6 +30,12 @@ public class JobServiceClientFallback implements FallbackFactory<JobServiceClien
                 log.error("JobServiceClient getJobById failed for id: {} - returning null", id, cause);
                 return null;
             }
+
+            @Override
+            public Long getTotalJobs() {
+                log.error("JobServiceClient getTotalJobs failed - returning 0", cause);
+                return 0L;
+            }
         };
     }
 }

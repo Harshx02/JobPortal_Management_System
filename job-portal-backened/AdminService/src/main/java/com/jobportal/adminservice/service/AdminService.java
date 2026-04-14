@@ -20,4 +20,7 @@ public interface AdminService {
 
     // Reports
     Map<String, Object> getReports();
+
+    // Public Stats
+    Map<String, Object> getPublicStats();
 }

@@ -140,4 +140,11 @@ public class JobController {
 
                 return ResponseEntity.noContent().build();
         }
+
+        @GetMapping("/count")
+        public ResponseEntity<Long> getTotalJobs() {
+                log.info("Get total jobs count API called");
+                Long count = jobService.getTotalJobs();
+                return ResponseEntity.ok(count);
+        }
 }

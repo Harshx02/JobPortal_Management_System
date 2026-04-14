@@ -319,5 +319,17 @@ public class AuthServiceImpl implements AuthService {
         
         log.info("Password reset successfully | email: {}", email);
     }
+
+    @Override
+    public Long countUsersByRole(String role) {
+        log.info("Counting users by role | role: {}", role);
+        try {
+            UserRole userRole = UserRole.valueOf(role.toUpperCase());
+            return userRepository.countByRole(userRole);
+        } catch (IllegalArgumentException e) {
+            log.warn("Invalid role provided for count | role: {}", role);
+            return 0L;
+        }
+    }
 }
 

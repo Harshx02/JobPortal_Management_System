@@ -158,4 +158,16 @@ public class ApplicationController {
 
         return ResponseEntity.ok(count);
     }
+
+    @GetMapping("/count-by-status")
+    public ResponseEntity<Long> getCountByStatus(
+            @RequestParam ApplicationStatus status,
+            @RequestParam(defaultValue = "false") boolean monthly) {
+
+        log.info("Get application count by status API called | status: {} | monthly: {}", status, monthly);
+
+        Long count = service.getCountByStatus(status, monthly);
+
+        return ResponseEntity.ok(count);
+    }
 }

@@ -299,5 +299,15 @@ public class ApplicationServiceImpl implements ApplicationService {
         log.debug("Total applications count: {}", count);
         return count;
     }
+
+    @Override
+    public Long getCountByStatus(ApplicationStatus status, boolean monthly) {
+        log.info("Get application count | status: {} | monthly: {}", status, monthly);
+        if (monthly) {
+            java.time.LocalDateTime lastMonth = java.time.LocalDateTime.now().minusDays(30);
+            return applicationRepository.countByStatusAndAppliedAtAfter(status, lastMonth);
+        }
+        return applicationRepository.countByStatus(status);
+    }
 }
 

@@ -18,4 +18,7 @@ public interface JobServiceClient {
 
     @GetMapping("/api/jobs/{id}")
     JobResponse getJobById(@PathVariable Long id);
+
+    @GetMapping("/api/jobs/count")
+    Long getTotalJobs();
 }

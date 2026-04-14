@@ -20,4 +20,7 @@ public interface JobService {
     
     // Delete all jobs by recruiterId
     void deleteRecruiterJobs(Long recruiterId);
+
+    // Get total number of jobs
+    Long getTotalJobs();
 }

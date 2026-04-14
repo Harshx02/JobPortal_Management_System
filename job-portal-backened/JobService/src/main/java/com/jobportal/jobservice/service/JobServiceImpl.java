@@ -188,5 +188,11 @@ public class JobServiceImpl implements JobService {
 
         log.info("Recruiter jobs deleted | recruiterId: {}", recruiterId);
     }
+
+    @Override
+    public Long getTotalJobs() {
+        log.info("Get total jobs count");
+        return jobRepository.count();
+    }
 }
 

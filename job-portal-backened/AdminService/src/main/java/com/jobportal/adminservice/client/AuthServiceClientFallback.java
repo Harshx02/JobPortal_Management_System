@@ -28,6 +28,12 @@ public class AuthServiceClientFallback implements FallbackFactory<AuthServiceCli
                 log.error("AuthServiceClient getUserById failed for id: {} - returning null", id, cause);
                 return null;
             }
+
+            @Override
+            public Long countUsersByRole(String role, String secret) {
+                log.error("AuthServiceClient countUsersByRole failed for role: {} - returning 0", role, cause);
+                return 0L;
+            }
         };
     }
 }

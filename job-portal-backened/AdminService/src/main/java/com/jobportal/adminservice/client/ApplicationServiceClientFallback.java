@@ -17,6 +17,12 @@ public class ApplicationServiceClientFallback implements FallbackFactory<Applica
                 log.error("ApplicationServiceClient getTotalApplications failed - returning 0", cause);
                 return 0L;
             }
+
+            @Override
+            public Long getCountByStatus(String status, boolean monthly) {
+                log.error("ApplicationServiceClient getCountByStatus failed for status: {} - returning 0", status, cause);
+                return 0L;
+            }
         };
     }
 }

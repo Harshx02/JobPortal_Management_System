@@ -141,6 +141,27 @@ public class AdminServiceImpl implements AdminService {
         );
     }
 
+    @Override
+    public Map<String, Object> getPublicStats() {
+
+        log.info("Generating public platform stats");
+
+        long totalJobs = jobServiceClient.getTotalJobs();
+        long jobSeekers = authServiceClient.countUsersByRole("JOB_SEEKER", internalSecret);
+        long recruiters = authServiceClient.countUsersByRole("RECRUITER", internalSecret);
+        long hiredMonthly = applicationServiceClient.getCountByStatus("ACCEPTED", true);
+
+        log.info("Public stats generated | jobs: {} | jobSeekers: {} | recruiters: {} | hiredMonthly: {}",
+                totalJobs, jobSeekers, recruiters, hiredMonthly);
+
+        return Map.of(
+                "activeJobs", totalJobs,
+                "jobSeekers", jobSeekers,
+                "companies", recruiters,
+                "hiredMonthly", hiredMonthly
+        );
+    }
+
     public List<UserResponse> fallbackGetAllUsers(Throwable t) {
         log.error("Fallback triggered for getAllUsers | error: {}", t.getMessage());
         return List.of();

@@ -22,8 +22,8 @@ describe('NotificationService', () => {
       getAllJobs: vi.fn().mockReturnValue(of({ content: [] }))
     };
     appMock = {
-      getUserApplications: vi.fn().mockReturnValue(of([])),
-      getJobApplications: vi.fn().mockReturnValue(of([]))
+      getUserApplications: vi.fn().mockReturnValue(of({ content: [], totalElements: 0, totalPages: 0 })),
+      getJobApplications: vi.fn().mockReturnValue(of({ content: [], totalElements: 0, totalPages: 0 }))
     };
     adminMock = {
       getAllUsers: vi.fn().mockReturnValue(of([]))
@@ -54,7 +54,11 @@ describe('NotificationService', () => {
 
   it('should load JOB_SEEKER notifications', () => {
     authMock.userRole.set('JOB_SEEKER');
-    appMock.getUserApplications.mockReturnValue(of([{ id: 1, status: 'ACCEPTED', job: { title: 'Angular Developer' } }]));
+    appMock.getUserApplications.mockReturnValue(of({
+      content: [{ id: 1, status: 'ACCEPTED', job: { title: 'Angular Developer' } }],
+      totalElements: 1,
+      totalPages: 1
+    }));
     jobMock.getAllJobs.mockReturnValue(of({ content: [{ id: 10, title: 'New Job', companyName: 'Google', createdAt: new Date().toISOString() }] }));
 
     service.refreshNotifications();
@@ -67,7 +71,11 @@ describe('NotificationService', () => {
   it('should load RECRUITER notifications', () => {
     authMock.userRole.set('RECRUITER');
     jobMock.getAllJobs.mockReturnValue(of({ content: [{ id: 101, title: 'Manager' }] }));
-    appMock.getJobApplications.mockReturnValue(of([{ id: 500, applicantName: 'Jane', jobId: 101, appliedAt: new Date().toISOString() }]));
+    appMock.getJobApplications.mockReturnValue(of({
+      content: [{ id: 500, applicantName: 'Jane', jobId: 101, appliedAt: new Date().toISOString() }],
+      totalElements: 1,
+      totalPages: 1
+    }));
 
     service.refreshNotifications();
 

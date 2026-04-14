@@ -32,4 +32,8 @@ public interface ApplicationRepository extends JpaRepository<JobApplication, Lon
 
     // Count all applications
     long count();
+
+    long countByStatus(com.capg.ApplicationService.enums.ApplicationStatus status);
+
+    long countByStatusAndAppliedAtAfter(com.capg.ApplicationService.enums.ApplicationStatus status, java.time.LocalDateTime date);
 }
