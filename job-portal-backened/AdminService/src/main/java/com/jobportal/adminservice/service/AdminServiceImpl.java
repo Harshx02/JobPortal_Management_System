@@ -143,13 +143,36 @@ public class AdminServiceImpl implements AdminService {
 
     @Override
     public Map<String, Object> getPublicStats() {
-
         log.info("Generating public platform stats");
 
-        long totalJobs = jobServiceClient.getTotalJobs();
-        long jobSeekers = authServiceClient.countUsersByRole("JOB_SEEKER", internalSecret);
-        long recruiters = authServiceClient.countUsersByRole("RECRUITER", internalSecret);
-        long hiredMonthly = applicationServiceClient.getCountByStatus("ACCEPTED", true);
+        Long totalJobs = 0L;
+        Long jobSeekers = 0L;
+        Long recruiters = 0L;
+        Long hiredMonthly = 0L;
+
+        try {
+            totalJobs = java.util.Optional.ofNullable(jobServiceClient.getTotalJobs()).orElse(0L);
+        } catch (Exception e) {
+            log.error("Failed to fetch total jobs", e);
+        }
+
+        try {
+            jobSeekers = java.util.Optional.ofNullable(authServiceClient.countUsersByRole("JOB_SEEKER", internalSecret)).orElse(0L);
+        } catch (Exception e) {
+            log.error("Failed to fetch job seeker count", e);
+        }
+
+        try {
+            recruiters = java.util.Optional.ofNullable(authServiceClient.countUsersByRole("RECRUITER", internalSecret)).orElse(0L);
+        } catch (Exception e) {
+            log.error("Failed to fetch recruiter count", e);
+        }
+
+        try {
+            hiredMonthly = java.util.Optional.ofNullable(applicationServiceClient.getCountByStatus("ACCEPTED", true)).orElse(0L);
+        } catch (Exception e) {
+            log.error("Failed to fetch hired monthly count", e);
+        }
 
         log.info("Public stats generated | jobs: {} | jobSeekers: {} | recruiters: {} | hiredMonthly: {}",
                 totalJobs, jobSeekers, recruiters, hiredMonthly);
