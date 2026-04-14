@@ -133,4 +133,17 @@ describe('LoginComponent', () => {
       expect(router.navigate).toHaveBeenCalledWith(['/admin/dashboard']);
     });
   });
+
+  it('should toggle showPass signal', () => {
+    expect(component.showPass()).toBe(false);
+    component.showPass.set(true);
+    expect(component.showPass()).toBe(true);
+  });
+
+  it('should redirect back to home if user was already logged in as JOB_SEEKER', () => {
+    authService.isLoggedIn.mockReturnValue(true);
+    authService.userRole.mockReturnValue('JOB_SEEKER');
+    fixture = TestBed.createComponent(LoginComponent);
+    expect(router.navigate).toHaveBeenCalledWith(['/home']);
+  });
 });

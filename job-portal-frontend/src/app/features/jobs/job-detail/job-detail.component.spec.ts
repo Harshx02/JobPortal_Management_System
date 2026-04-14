@@ -135,4 +135,20 @@ describe('JobDetailComponent', () => {
 
     expect(router.navigate).toHaveBeenCalledWith(['/auth/login'], expect.anything());
   });
+
+  it('should navigate to apply page if applying while logged in', () => {
+    setupJob({ id: 1, title: 'Job' });
+    authService.isLoggedIn.set(true);
+    authService.userRole.set('JOB_SEEKER');
+    
+    component.apply();
+
+    expect(router.navigate).toHaveBeenCalledWith(['/apply', 1]);
+  });
+
+  it('should navigate back to jobs list', () => {
+    setupJob({ id: 1, title: 'Job' });
+    component.goBack();
+    expect(router.navigate).toHaveBeenCalledWith(['/jobs']);
+  });
 });

@@ -132,4 +132,10 @@ describe('RegisterComponent', () => {
     expect(component.password).toBeTruthy();
     expect(component.role).toBeTruthy();
   });
+
+  it('should toggle showPass signal', () => {
+    expect(component.showPass()).toBe(false);
+    component.showPass.set(true);
+    expect(component.showPass()).toBe(true);
+  });
 });

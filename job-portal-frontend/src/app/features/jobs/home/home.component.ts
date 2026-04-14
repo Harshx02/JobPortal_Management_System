@@ -6,6 +6,7 @@ import { NavbarComponent } from '../../../shared/components/navbar/navbar.compon
 import { JobCardComponent } from '../../../shared/components/job-card/job-card.component';
 import { JobService } from '../../../core/services/job.service';
 import { JobResponseDto } from '../../../core/models/job.model';
+import { ToastService } from '../../../core/services/toast.service';
 
 @Component({
   selector: 'app-home',
@@ -21,18 +22,25 @@ export class HomeComponent implements OnInit {
   error    = signal('');
 
   stats = [
-    { label: 'Active Jobs', value: '10K+', icon: '💼' },
-    { label: 'Companies', value: '2K+',  icon: '🏢' },
-    { label: 'Hired Monthly', value: '5K+', icon: '🎯' },
-    { label: 'Job Seekers', value: '50K+', icon: '👥' }
+    { label: 'Active Jobs', value: '...', icon: '💼' },
+    { label: 'Companies', value: '...',  icon: '🏢' },
+    { label: 'Hired Monthly', value: '...', icon: '🎯' },
+    { label: 'Job Seekers', value: '...', icon: '👥' }
   ];
 
-  constructor(private jobService: JobService, private router: Router) {}
+  constructor(
+    private jobService: JobService, 
+    private router: Router,
+    private toastService: ToastService
+  ) {}
 
   ngOnInit() {
     this.jobService.getAllJobs(0, 6).subscribe({
       next: page => { this.jobs.set(page.content); this.loading.set(false); },
-      error: ()   => { this.error.set('Could not load jobs.'); this.loading.set(false); }
+      error: ()   => { 
+        this.error.set('Could not load jobs.'); 
+        this.loading.set(false);
+      }
     });
 
     this.jobService.getPublicStats().subscribe({
@@ -46,6 +54,14 @@ export class HomeComponent implements OnInit {
       },
       error: err => {
         console.error('Could not load stats', err);
+        // Fallback to placeholders if API fails
+        this.stats = [
+          { label: 'Active Jobs', value: '10K+', icon: '💼' },
+          { label: 'Companies', value: '2K+',  icon: '🏢' },
+          { label: 'Hired Monthly', value: '5K+', icon: '🎯' },
+          { label: 'Job Seekers', value: '50K+', icon: '👥' }
+        ];
+        this.toastService.error('Failed to load platform statistics');
       }
     });
   }
