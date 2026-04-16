@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ToastComponent } from './toast.component';
 import { ToastService } from '../../../core/services/toast.service';
 import { By } from '@angular/platform-browser';
@@ -59,15 +60,17 @@ describe('ToastComponent', () => {
     expect(toastElements.length).toBe(0);
   });
 
-  it('should auto-remove toast after 5 seconds', fakeAsync(() => {
+  it('should auto-remove toast after 5 seconds', () => {
+    vi.useFakeTimers();
     toastService.success('Auto remove');
     fixture.detectChanges();
 
     expect(toastService.toasts().length).toBe(1);
 
-    tick(5000);
+    vi.advanceTimersByTime(5000);
     fixture.detectChanges();
 
     expect(toastService.toasts().length).toBe(0);
-  }));
+    vi.useRealTimers();
+  });
 });

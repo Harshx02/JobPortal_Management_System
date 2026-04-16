@@ -75,20 +75,20 @@ describe('JobDetailComponent', () => {
     jobService.getJobById.mockReturnValue(of(jobData));
     fixture = TestBed.createComponent(JobDetailComponent);
     component = fixture.componentInstance;
-    
+
     // Explicitly set signals if they are managed by AuthService
     authService.isLoggedIn.set(true);
     authService.userRole.set('JOB_SEEKER');
-    
+
     fixture.detectChanges();
   }
 
   it('should create and load job', () => {
-    setupJob({ 
-      id: 1, 
-      title: 'Test Job', 
-      companyName: 'Google', 
-      location: 'Bangalore', 
+    setupJob({
+      id: 1,
+      title: 'Test Job',
+      companyName: 'Google',
+      location: 'Bangalore',
       salary: 500000,
       experience: 2,
       description: 'Job Description'
@@ -100,11 +100,11 @@ describe('JobDetailComponent', () => {
 
   // NORMAL TEST: Formatter
   it('should format salary correctly (normal/boundary)', () => {
-    setupJob({ 
-      id: 1, 
-      title: 'Test Job', 
-      companyName: 'Google', 
-      salary: 1500000 
+    setupJob({
+      id: 1,
+      title: 'Test Job',
+      companyName: 'Google',
+      salary: 1500000
     });
     expect(component.formatSalary(1500000)).toBe('₹15.0L / year');
     expect(component.formatSalary(50000)).toBe('₹50K / year');
@@ -124,30 +124,44 @@ describe('JobDetailComponent', () => {
 
   // NAVIGATION TEST (NORMAL)
   it('should navigate to login if applying while logged out', () => {
-    setupJob({ 
-      id: 1, 
+    setupJob({
+      id: 1,
       title: 'Test Job',
       companyName: 'Google'
     });
     authService.isLoggedIn.set(false);
-    
+
     component.apply();
 
     expect(router.navigate).toHaveBeenCalledWith(['/auth/login'], expect.anything());
   });
 
   it('should navigate to apply page if applying while logged in', () => {
-    setupJob({ id: 1, title: 'Job' });
+    setupJob({
+      id: 1,
+      title: 'Job',
+      companyName: 'Test Company',
+      location: 'Bangalore',
+      salary: 1000000,
+      experience: 2
+    });
     authService.isLoggedIn.set(true);
     authService.userRole.set('JOB_SEEKER');
-    
+
     component.apply();
 
     expect(router.navigate).toHaveBeenCalledWith(['/apply', 1]);
   });
 
   it('should navigate back to jobs list', () => {
-    setupJob({ id: 1, title: 'Job' });
+    setupJob({
+      id: 1,
+      title: 'Job',
+      companyName: 'Test Company',
+      location: 'Bangalore',
+      salary: 1000000,
+      experience: 2
+    });
     component.goBack();
     expect(router.navigate).toHaveBeenCalledWith(['/jobs']);
   });
