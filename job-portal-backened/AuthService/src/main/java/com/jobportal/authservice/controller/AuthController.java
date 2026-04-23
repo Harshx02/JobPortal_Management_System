@@ -50,11 +50,8 @@ public class AuthController {
             @Valid @RequestBody RegisterRequest request) {
 
         log.info("Register API called | email: {}", request.getEmail());
-
         AuthResponse response = authService.register(request);
-
         log.info("User registered successfully | email: {}", request.getEmail());
-
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
@@ -63,11 +60,8 @@ public class AuthController {
             @Valid @RequestBody LoginRequest request) {
 
         log.info("Login API called | email: {}", request.getEmail());
-
         AuthResponse response = authService.login(request);
-
         log.info("Login successful | email: {}", request.getEmail());
-
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
